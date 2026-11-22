@@ -1,224 +1,29 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第17章 协整与误差修正模型</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html" class="active">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="协整与误差修正模型：理解伪回归、协整向量、Engle-Granger 两步法与 Johansen 检验，以及 VECM 如何同时刻画短期动态与长期均衡。"><title>协整与误差修正模型 (VECM) · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内目录"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a><a href="14.html">14　预测与评估</a><a href="15.html">15　波动率建模</a><a href="16.html">16　向量自回归 VAR</a><a href="17.html" aria-current="page">17　协整与 VECM</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#spurious">01 · 伪回归</a><a href="#definition">02 · 协整的定义</a><a href="#eg">03 · Engle–Granger 两步法</a><a href="#johansen">04 · Johansen 检验与协整秩</a><a href="#vecm">05 · VECM：误差修正</a><a href="#experiment">06 · Python：协整检验与 VECM</a><a href="#wrap">07 · 与状态空间的衔接</a></div><div class="separ"></div><a href="../index.html#catalog">全部课程 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 17 / 28 · MULTIVARIATE</p><h1>协整与误差修正模型</h1><p class="dek">两个各自随机游走的序列，可能被一条长期均衡“拴”在一起。本章讲清伪回归、协整向量、Engle–Granger 与 Johansen 检验，以及 VECM 如何把长期均衡与短期动态放进同一个模型。</p><div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 边界与诊断</div><p>第 16 章的 VAR 假设变量平稳。但很多经济变量是 I(1)：单独看找不到稳定均值。直接对它们做回归会掉进<strong>伪回归</strong>；直接差分又会丢掉它们的长期关系。<strong>协整正是这两难之间的出路。</strong></p><p>先纠正一个误解：<strong>“两个变量协整”不等于“其中一个导致另一个”</strong>。协整只描述存在一个平稳的线性组合，方向性需要额外假设与检验才能讨论。</p></header>
+<section id="spurious" aria-labelledby="spurious-head"><h2 id="spurious-head">01 · 伪回归</h2><p>Granger 与 Newbold（1974）用相互独立的随机游走做回归，发现传统 t 检验会以远高于名义水平（约 3/4）的比例“显著”。原因是两边都含随机趋势，OLS 会把共同的漂移当成关系，而残差不平稳。</p><figure><img src="../assets/svg/17-spurious.svg" width="960" height="380" loading="lazy" alt="左图两条独立随机游走的散点带一条看似明显的拟合线，右图回归残差长时间漂移、自相关接近 1。"><figcaption>左：两条<strong>相互独立</strong>的随机游走，散点与拟合线却“看起来有关系”，本图 R²≈0.76。右：该回归的残差长时间漂移、自相关接近 1，不像白噪声。<strong>残差有单位根是伪回归的快速信号。</strong>图为固定种子的合成数据，换种子结果不同。</figcaption></figure><p>判据不是“R² 高不高”，而是<strong>残差是否平稳</strong>。这正是协整检验要做的事。</p></section>
+<section id="definition" aria-labelledby="definition-head"><h2 id="definition-head">02 · 协整的定义</h2><p>若 <code>xₜ</code> 与 <code>yₜ</code> 都是 I(1)，但存在系数 β（与常数项）使线性组合平稳，则称它们协整，该组合称为协整关系。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="协整的定义"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="y_t − β x_t 是平稳的 I(0)"><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>−</mo><mi>β</mi><msub><mi>x</mi><mi>t</mi></msub><mo>∼</mo><mi>I</mi><mo>(</mo><mn>0</mn><mo>)</mo></mrow></math><div class="formula-note">前提：xₜ、yₜ 均为 I(1)。β 的取值（及常数）构成协整向量；组合平稳意味着两序列不会无限分离，而是围绕长期均衡波动。</div></div><p>类比“遛狗”：人与狗各自走动，但狗绳让它们的距离围绕某个均值波动，不会无限拉开。注意这是<strong>长期</strong>性质，短期偏离仍可能很大。</p></section>
+<section id="eg" aria-labelledby="eg-head"><h2 id="eg-head">03 · Engle–Granger 两步法</h2><p>第一步用 OLS 估计长期关系 <code>yₜ=α+βxₜ+eₜ</code> 并取残差 <code>êₜ</code>；第二步对 <code>êₜ</code> 做单位根检验。若拒绝单位根（残差平稳），则存在协整。</p><p>关键细节：<strong>第二步的临界值不能用普通 ADF 表</strong>，因为残差是从第一步估计得来的（生成的回归量），需要 Engle–Granger 专用临界值。statsmodels 的 <code>coint()</code> 会直接返回带正确临界值的结论，而直接对残差调 <code>adfuller</code> 会低估显著性。该方法的局限是只能处理一个协整关系与两变量情形。</p></section>
+<section id="johansen" aria-labelledby="johansen-head"><h2 id="johansen-head">04 · Johansen 检验与协整秩</h2><p>Johansen 检验在 VAR 框架下估计协整秩 r（独立协整关系的个数），能处理多变量与多个协整关系。它提供两种互补统计量。</p><div class="table-scroll"><table><thead><tr><th scope="col">统计量</th><th scope="col">原假设</th><th scope="col">备择假设</th></tr></thead><tbody><tr><td>迹检验（trace）</td><td>协整秩 ≤ r</td><td>协整秩 &gt; r</td></tr><tr><td>最大特征值检验</td><td>协整秩 = r</td><td>协整秩 = r+1</td></tr></tbody></table></div><p>两种检验给出不一致的结论并不罕见，尤其是在秩接近边界时。<strong>不能只看单个 p 值就宣布协整秩</strong>，应结合经济含义与滞后阶数选择。</p></section>
+<section id="vecm" aria-labelledby="vecm-head"><h2 id="vecm-head">05 · VECM：误差修正</h2><p>当确认协整后，VAR 的差分形式会多出一个“误差修正项”：上一期偏离均衡越远，本期反向修正越多。这个模型就是向量误差修正模型（VECM）。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="VECM 的形式"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="VECM：Δy_t = α β′ y_{t−1} + Γ Δy_{t−1} + ε_t"><mrow><mi>Δ</mi><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>α</mi><msup><mi>β</mi><mo>′</mo></msup><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>Γ</mi><mi>Δ</mi><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>ε</mi><mi>t</mi></msub></mrow></math><div class="formula-note">β′y_{t−1} 是上一期偏离（长期均衡项），α 是调整速度。α 越接近 −1 修正越快，接近 0 则回复很慢；Γ 描述短期动态。</div></div><figure><img src="../assets/svg/17-cointegration.svg" width="960" height="380" loading="lazy" alt="上方面板两条 I(1) 序列同步游走，下方面板它们的价差围绕均值回复。"><figcaption>上：两条 I(1) 序列（青、紫）各自非平稳却同步游走；下：其线性组合 <code>z=y−1.5x</code> 围绕均值回复，是平稳的 I(0)。<strong>“各自非平稳、组合平稳”就是协整。</strong>图为合成数据的教学示意。</figcaption></figure><figure><img src="../assets/svg/17-vecm.svg" width="960" height="380" loading="lazy" alt="价差的一步变化对上一期偏离的散点，拟合线斜率为负，表示偏离被反向修正。"><figcaption>把价差的一步变化 <code>Δzₜ</code> 对上一期偏离 <code>z_{t−1}</code> 做散点：拟合线斜率为负，即“偏离越大、本期反向修正越多”，斜率大小对应调整速度 α。图为合成数据的教学示意，非估计结果。</figcaption></figure><p>VECM 把长期均衡与短期动态统一在一起：既不像直接差分那样丢掉长期信息，也不像原水平回归那样可能伪回归。</p></section>
+<section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">06 · Python：协整检验与 VECM</h2><p>下面生成一对已知协整的序列（<code>y=1.5x+z</code>，x 为随机游走，z 为平稳 AR(1)），用 <code>coint</code> 做 Engle–Granger 检验，用 Johansen 估计秩，再拟合 VECM 看调整速度。只依赖 numpy 与 statsmodels。</p><pre tabindex="0"><code>import numpy as np
+from statsmodels.tsa.stattools import coint
+from statsmodels.tsa.vector_ar.vecm import VECM, coint_johansen
 
-        <h2>第17章 协整与误差修正模型 (VECM)</h2>
+rng = np.random.default_rng(17)
+n = 400
+x = np.cumsum(rng.standard_normal(n))     # I(1)
+z = np.zeros(n)
+for t in range(1, n):
+    z[t] = 0.75 * z[t-1] + rng.standard_normal()   # I(0)
+y = 1.5 * x + z                            # 与 x 协整
 
-        <p>想象一下遛狗的场景：人和狗各走各的路线，但狗绳始终把他们连在一起。人走远了，狗会被拉回来；狗跑远了，人也会被拽过去。他们之间的距离会围绕某个均值来回波动，但永远不会无限分离。</p>
+print(&quot;Engle-Granger p:&quot;, coint(y, x)[1])      # 期望很小
+j = coint_johansen(np.column_stack([y, x]), det_order=0, k_ar_diff=1)
+print(&quot;迹统计量:&quot;, np.round(j.lr1, 2))         # 第一个超过 5% 临界值
+print(&quot;5% 临界值:&quot;, np.round(j.cvt[:, 1], 2))
 
-        <p>这就是<strong>协整（Cointegration）</strong>的核心思想——两个或多个非平稳时间序列各自随机漫步，但它们之间存在某种<strong>长期均衡关系</strong>，把它们"拴"在了一起。这是时间序列分析中最重要也最容易被误解的概念之一。</p>
+v = VECM(np.column_stack([y, x]), k_ar_diff=1, coint_rank=1).fit()
+print(&quot;调整速度 α:&quot;, np.round(v.alpha.ravel(), 3))   # 期望一负一近零
 
-        <div class="highlight">
-            <strong>本章核心目标：</strong>理解协整的经济含义，掌握 Engle-Granger 两步法和 Johansen 检验，能用 VECM 同时建模短期动态和长期均衡。
-        </div>
-
-        <h3>17.1 伪回归的教训</h3>
-
-        <p>1974年，两位统计学家 Clive Granger 和 Paul Newbold 做了一个著名的实验：他们生成了两个<strong>完全独立</strong>的随机游走序列，然后对它们做回归。结果显示：t 统计量在 5% 水平上显著的比例高达 75% 左右！</p>
-
-        <p>换句话说，两个毫无关系的时间序列，仅仅因为都是非平稳的，就在传统回归分析中表现出"高度显著"的关系——这就是经典的<strong>伪回归（Spurious Regression）</strong>问题。</p>
-
-        <div class="warning">
-            <strong>⚠ 伪回归的警示：</strong>当两个独立非平稳序列回归时，R² 很高、t 统计量显著，但 DW 统计量接近零（残差高度自相关）。这是识别伪回归的快速信号。千万别看到高 R² 就以为发现了什么重要关系！
-        </div>
-
-        <p>但如果两个非平稳序列的<strong>线性组合</strong>变成了平稳序列呢？那它们就是协整的。协整为"伪回归困局"提供了一条出路：当变量协整时，回归结果是可信的，因为残差是平稳的。</p>
-
-        <h3>17.2 协整的直观理解</h3>
-
-        <p>从数学上说，如果两个序列 x_t 和 y_t 都是 I(1) 单整（一阶差分后平稳），且存在某个系数 β 使 y_t - β·x_t 是平稳的 I(0)，那么 x_t 和 y_t 就是协整的。</p>
-
-        <p>现实中的经典例子：</p>
-        <table>
-            <tr><th>协整关系</th><th>直觉</th></tr>
-            <tr><td>短期利率 ↔ 长期利率</td><td>利差不会无限扩大，否则套利机会出现</td></tr>
-            <tr><td>股价 A ↔ 股价 B（同一行业）</td><td>基本面相似的股票价差应围绕合理值波动</td></tr>
-            <tr><td>消费 ↔ 收入</td><td>长期来看消费不会持续偏离收入水平</td></tr>
-            <tr><td>即期汇率 ↔ 远期汇率</td><td>抛补利率平价确保二者不会长期脱钩</td></tr>
-        </table>
-
-        <h3>17.3 Engle-Granger 两步法</h3>
-
-        <p>1987年，Engle 和 Granger 提出了最直观的协整检验方法，分两步走：</p>
-
-        <p><strong>第一步：估计长期均衡关系</strong></p>
-        <pre><code>y_t = α + β·x_t + e_t
-
-用 OLS 估计出 β，然后计算残差序列 e_t = y_t - α - β·x_t</code></pre>
-
-        <p><strong>第二步：检验残差的平稳性</strong></p>
-        <pre><code>对残差 e_t 做 ADF 检验。
-如果 e_t 是平稳的 —— x_t 和 y_t 协整。
-如果 e_t 有单位根 —— 伪回归，不存在协整。</code></pre>
-
-        <div class="tip">
-            <strong>注意：</strong>第二步的 ADF 检验不能使用标准临界值，因为残差是从第一步估计中生成的（生成的回归量问题），需要使用 Engle-Granger 专门的临界值表。Python 的 <code>statsmodels</code> 会自动处理这一点。
-        </div>
-
-        <pre><code>import statsmodels.api as sm
-from statsmodels.tsa.stattools import adfuller
-import numpy as np
-
-# 假设有两个价格序列
-# 第一步：估计长期关系
-x = sm.add_constant(price_b)
-result_ols = sm.OLS(price_a, x).fit()
-residuals = result_ols.resid
-
-# 第二步：检验残差的平稳性
-adf_result = adfuller(residuals, autolag='AIC')
-print(f"ADF 统计量: {adf_result[0]:.4f}")
-print(f"p 值: {adf_result[1]:.4f}")
-
-if adf_result[1] &lt; 0.05:
-    print("残差平稳 → 存在协整关系")
-else:
-    print("残差有单位根 → 不存在协整")</code></pre>
-
-        <h3>17.4 Johansen 检验</h3>
-
-        <p>Engle-Granger 方法有两个局限：第一，只能处理两个变量；第二，不能处理多个协整关系（系统中可能存在不止一个协整向量）。<strong>Johansen 检验</strong>解决了这两个问题。</p>
-
-        <p>Johansen 检验在 VAR 框架下进行，使用两种检验统计量：</p>
-
-        <ul>
-            <li><strong>迹检验（Trace Test）：</strong>H0: 最多有 r 个协整向量 ↔ H1: 有大于 r 个</li>
-            <li><strong>最大特征值检验（Max Eigenvalue Test）：</strong>H0: 有 r 个 ↔ H1: 有 r+1 个</li>
-        </ul>
-
-        <pre><code>from statsmodels.tsa.vector_ar.vecm import coint_johansen
-
-# Johansen 检验
-johansen_result = coint_johansen(df, det_order=0, k_ar_diff=1)
-print("特征值:", johansen_result.lr1)
-print("迹统计量:", johansen_result.lr1)
-print("5% 临界值:", johansen_result.cvt)
-
-# 判断协整秩
-rank = None
-for r in range(len(johansen_result.lr1)):
-    if johansen_result.lr1[r] > johansen_result.cvt[r, 1]:
-        rank = r + 1
-print(f"估计协整秩: r = {rank}")</code></pre>
-
-        <p>协整秩 r 就是协整关系的数量。例如 r=0 表示没有协整关系，r=1 表示存在一个线性组合使变量平稳，r=2 表示存在两个独立的协整关系。</p>
-
-        <h3>17.5 VECM：当协整遇上 VAR</h3>
-
-        <p><strong>向量误差修正模型（Vector Error Correction Model, VECM）</strong>把 VAR 和协整统一在了一起。它同时包含两个部分：</p>
-
-        <ul>
-            <li><strong>长期均衡项（误差修正项）：</strong>上一期的偏离被下一期修正回来</li>
-            <li><strong>短期动态项：</strong>各变量的差分滞后项</li>
-        </ul>
-
-        <p>VECM 的一般形式：</p>
-
-        <pre><code>Δy_t = α·EC_{t-1} + Γ₁·Δy_{t-1} + ... + Γ_{p-1}·Δy_{t-p+1} + ε_t
-
-其中 EC_{t-1} = y_{t-1} - β·x_{t-1} 是上一期的偏离
-α 是调整速度（有多快回到均衡）
-Γ_i 是短期动态系数</code></pre>
-
-        <pre><code>from statsmodels.tsa.vector_ar.vecm import VECM
-
-# 拟合 VECM (需要先知道协整秩)
-vecm_model = VECM(df, k_ar_diff=2, coint_rank=1)
-vecm_result = vecm_model.fit()
-
-print(vecm_result.summary())
-
-# 查看误差修正系数
-alpha = vecm_result.alpha  # 调整速度
-print("调整速度 α:", alpha)</code></pre>
-
-        <p>α 系数是 VECM 中最关键的部分。α 为负值且统计显著，说明当变量偏离均衡时，系统会以多快的速度"拉回来"。α 越接近 -1，修正越快；α 接近 0，则偏离后的恢复非常缓慢。</p>
-
-        <h3>17.6 实战应用：配对交易</h3>
-
-        <p>协整在量化金融中最经典的应用就是<strong>配对交易（Pairs Trading）</strong>。基本思路：</p>
-        <ol>
-            <li>找到两只协整的股票（如同行业龙头股 A 和 B）</li>
-            <li>当它们的价差偏离均值超过阈值（比如 2 倍标准差）时建仓</li>
-            <li>做多被低估的那只，做空被高估的那只</li>
-            <li>等待价差回归均值时平仓获利</li>
-        </ol>
-
-        <pre><code># 配对交易的简单模拟
-spread = price_a - coint_coef * price_b
-z_score = (spread - spread.mean()) / spread.std()
-
-# 交易信号
-entry_threshold = 2.0
-long_signal = z_score &lt; -entry_threshold
-short_signal = z_score > entry_threshold</code></pre>
-
-        <div class="highlight">
-            <strong>要点总结：</strong>协整是伪回归的"解药"，它连接了非平稳序列的长期均衡和短期动态。Engle-Granger 法适合两变量系统，Johansen 检验适合多变量。VECM 统一了协整和 VAR，是最完整的分析框架。
-        </div>
-
-        <h3>17.7 本章小结</h3>
-
-        <p>本章的核心知识点：</p>
-        <ul>
-            <li>伪回归：独立非平稳序列的回归产生虚假的显著关系</li>
-            <li>协整：非平稳序列的线性组合变成平稳序列，意味着长期均衡</li>
-            <li>Engle-Granger 两步法：先回归再检验残差平稳性</li>
-            <li>Johansen 检验：处理多变量和多协整关系</li>
-            <li>VECM = 协整 + VAR，同时建模长期修正和短期动态</li>
-        </ul>
-
-        <p>Granger 和 Newbold 的"伪回归"发现彻底改变了时间序列计量经济学，Granger 本人也因此获得了 2003 年诺贝尔经济学奖。协整和 VECM 为处理非平稳多变量系统提供了严谨的框架。下一章我们将彻底换一个视角——从<strong>状态空间模型和卡尔曼滤波</strong>出发，将之前学到的 ARIMA、指数平滑等模型统一到一个更通用的框架中。</p>
-
-        <div class="footer-nav">
-            <a href="16.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="18.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+assert coint(y, x)[1] &lt; 0.05</code></pre><p>预期结果：Engle–Granger p 值极小，迹统计量在第一个方向上超过 5% 临界值而第二个不超过，因而协整秩为 1；调整速度中有一个明显为负。<strong>这是合成数据上的结构验证，不构成对任何真实资产或宏观关系的结论</strong>。</p></section>
+<section id="wrap" aria-labelledby="wrap-head"><h2 id="wrap-head">07 · 与状态空间的衔接</h2><p>到这里，我们已经用均值、方差、季节与协整等不同角度处理过时间序列。下一章换一个统一视角：状态空间模型把观测方程与状态方程分开，用卡尔曼滤波递推地估计隐含状态，ARIMA、指数平滑乃至 VECM 都可以写成它的特例。</p><div class="thought"><strong>一个可用的协整报告需要回答：</strong>变量是否同阶单整（都 I(1)）？用的是 Engle–Granger 还是 Johansen，临界值是否正确？协整秩取多少、与经济学含义一致吗？VECM 的调整速度是否显著且方向合理？</div></section>
+<section id="references"><h2>进一步阅读与技术核对</h2><p>引用指向协整检验、VECM 与实现接口的官方资料。</p><ol class="refs"><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.coint.html" target="_blank" rel="noopener noreferrer">statsmodels：Engle–Granger 协整检验 coint()</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.vector_ar.vecm.coint_johansen.html" target="_blank" rel="noopener noreferrer">statsmodels：Johansen 协整检验</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.vector_ar.vecm.VECM.html" target="_blank" rel="noopener noreferrer">statsmodels：VECM 模型 API</a></li><li><a href="https://www.nobelprize.org/prizes/economic-sciences/2003/summary/" target="_blank" rel="noopener noreferrer">Nobel 2003（Engle 与 Granger：协整与 ARCH）</a></li></ol></section><nav class="bottom-nav" aria-label="章节导航"><a href="16.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="18.html">下一章 →</a></nav></article></main></div></body></html>
