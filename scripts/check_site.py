@@ -42,7 +42,7 @@ def main():
     chapters = data['chapters']
     if len(chapters) != 28 or [c['num'] for c in chapters] != [f'{i:02d}' for i in range(1,29)]:
         errors += fail('catalog must contain 01..28 in order')
-    fresh = [ROOT/'index.html'] + [ROOT/f'chapters/{i:02d}.html' for i in range(1,6)]
+    fresh = [ROOT/'index.html'] + [ROOT/f'chapters/{i:02d}.html' for i in range(1,11)]
     for page in fresh:
         if not page.is_file():
             errors += fail(f'missing {page.relative_to(ROOT)}')
@@ -87,8 +87,8 @@ def main():
                 errors += fail(f'{f.name}: missing title/desc')
         except ET.ParseError as e:
             errors += fail(f'{f.name}: bad XML: {e}')
-    if len(list((ROOT/'assets/svg').glob('*.svg'))) < 10:
-        errors += fail('expected at least 10 dedicated SVG diagrams')
+    if len(list((ROOT/'assets/svg').glob('*.svg'))) < 26:
+        errors += fail('expected at least 26 dedicated SVG diagrams')
     print(f'Checked {len(fresh)} core pages, {len(chapters)} chapters, SVG files: {len(list((ROOT/"assets/svg").glob("*.svg")))}')
     return int(errors != 0)
 

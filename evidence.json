@@ -1,5 +1,5 @@
 {
-  "edition": "First pass | 2026-11-22",
+  "edition": "Second pass | 2026-11-22",
   "sources": {
     "fpp": "https://otexts.com/fpp3/",
     "nist": "https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc4.htm",
@@ -7,7 +7,12 @@
     "adf": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.adfuller.html",
     "kpss": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.kpss.html",
     "lb": "https://www.statsmodels.org/stable/generated/statsmodels.stats.diagnostic.acorr_ljungbox.html",
-    "ets": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.exponential_smoothing.ets.ETSModel.html"
+    "ets": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.exponential_smoothing.ets.ETSModel.html",
+    "reg": "https://otexts.com/fpp3/regression.html",
+    "dyn": "https://otexts.com/fpp3/dynamic-regression.html",
+    "scipy": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.periodogram.html",
+    "arima": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html",
+    "auto": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.ar_model.AutoReg.html"
   },
   "chapters": [
     {
@@ -95,6 +100,93 @@
         "ets"
       ],
       "caveat": "No business benchmark or experimental gain claimed"
+    },
+    {
+      "path": "chapters/06.html",
+      "claims": [
+        "OLS serial error vs causality",
+        "Spurious regression with I(1) levels",
+        "BG/HAC limits"
+      ],
+      "figures": [
+        "06-regression-errors.svg",
+        "06-spurious.svg",
+        "06-dynamic.svg"
+      ],
+      "references": [
+        "reg",
+        "dyn"
+      ],
+      "caveat": "Conceptual synthetic figures; no empirical effects or performance claims."
+    },
+    {
+      "path": "chapters/07.html",
+      "claims": [
+        "DFT and frequency units",
+        "Density versus spectrum",
+        "Leakage and resolution"
+      ],
+      "figures": [
+        "07-frequency.svg",
+        "07-window.svg",
+        "07-leakage.svg"
+      ],
+      "references": [
+        "scipy"
+      ],
+      "caveat": "Conceptual synthetic figures; no empirical effects or performance claims."
+    },
+    {
+      "path": "chapters/08.html",
+      "claims": [
+        "AR stability root",
+        "Yule-Walker",
+        "phi^h response"
+      ],
+      "figures": [
+        "08-ar-flow.svg",
+        "08-ar-response.svg",
+        "08-roots.svg"
+      ],
+      "references": [
+        "arima",
+        "auto"
+      ],
+      "caveat": "Conceptual synthetic figures; no empirical effects or performance claims."
+    },
+    {
+      "path": "chapters/09.html",
+      "claims": [
+        "MA theoretical ACF",
+        "rho1=theta/(1+theta^2)",
+        "Invertibility"
+      ],
+      "figures": [
+        "09-ma-impulse.svg",
+        "09-ma-invert.svg",
+        "09-ma-overlap.svg"
+      ],
+      "references": [
+        "arima"
+      ],
+      "caveat": "Conceptual synthetic figures; no empirical effects or performance claims."
+    },
+    {
+      "path": "chapters/10.html",
+      "claims": [
+        "ARMA operator",
+        "Impulse response",
+        "AICc and residual checks"
+      ],
+      "figures": [
+        "10-arma-two-paths.svg",
+        "10-arma-forecast.svg",
+        "10-model-validation.svg"
+      ],
+      "references": [
+        "arima"
+      ],
+      "caveat": "Conceptual synthetic figures; no empirical effects or performance claims."
     }
   ]
 }
