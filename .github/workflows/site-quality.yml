@@ -36,3 +36,15 @@ jobs:
           name: browser-screenshots
           path: reports/browser/
           if-no-files-found: ignore
+
+  reproducible-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical example dependencies
+        run: python -m pip install -r requirements-examples.txt
+      - name: Execute chapter examples
+        run: python scripts/check_examples.py
