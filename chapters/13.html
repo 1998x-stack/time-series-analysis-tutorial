@@ -1,241 +1,35 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第13章 建模实践与诊断</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html" class="active">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-        <h2>第13章 建模实践与诊断</h2>
-
-        <p>大家好！前面几章我们依次学习了 AR、MA、ARMA、ARIMA、SARIMA——整个 ARIMA 家族的理论框架已经完整了。但理论是一回事，真正拿到一个真实数据集时怎么操作？这一步才是决定模型成败的关键。</p>
-
-        <p>这一章我们要做一件非常实际的事情：走完一个完整的 Box-Jenkins 建模流程，从拿到数据开始，到模型诊断结束。中间的每一步都会讲解常见陷阱和判断依据。这就像学开车——理论考试过了，现在是上路实操。</p>
-
-        <h3>13.1 完整的 Box-Jenkins 工作流</h3>
-
-        <p>一个规范的时序建模流程包括以下步骤：</p>
-
-        <ol>
-            <li><strong>数据探索：</strong>画时序图，检查缺失值，判断趋势、季节性和异常点</li>
-            <li><strong>平稳性检验：</strong>ADF 检验、KPSS 检验、观察 ACF 是否快速衰减</li>
-            <li><strong>数据变换：</strong>如有必要，做方差稳定变换（如 log 变换），然后做差分直到平稳</li>
-            <li><strong>模型识别：</strong>通过 ACF/PACF 初步判断 p, q, P, Q 的范围</li>
-            <li><strong>模型估计：</strong>拟合候选模型（通常 3~5 个），用 AIC/BIC 初步筛选</li>
-            <li><strong>残差诊断：</strong>检查残差是否为白噪声——这是最关键的验证步骤</li>
-            <li><strong>模型简化：</strong>移除不显著的参数，对比简化前后的 AIC</li>
-            <li><strong>预测验证：</strong>用留出集（holdout set）验证预测效果</li>
-        </ol>
-
-        <div class="tip">
-            <strong>重要提醒：</strong>上述步骤不是一次性的。如果在第 6 步发现残差有问题，需要回到第 4 步重新识别。这个迭代循环可能要重复 3~4 次才能找到满意的模型。
-        </div>
-
-        <h3>13.2 残差诊断：你模型的"验尸报告"</h3>
-
-        <p>残差诊断是 Box-Jenkins 流程中最关键的环节。一个"好"的模型的残差应该是白噪声——没有任何自相关，均值为零，方差恒定。</p>
-
-        <p>我们需要做三个核心检查：</p>
-
-        <p><strong>检查一：残差的 ACF 图。</strong>如果残差的 ACF 在某个滞后超出置信带，说明模型在这个滞后的信息没有被充分捕捉。Ljung-Box 检验提供了定量判断：原假设是"残差无自相关"，如果 p 值小于 0.05，说明残差仍有显著自相关，模型需要改进。</p>
-
-        <p><strong>检查二：残差的 QQ 图（正态 QQ Plot）。</strong>虽然参数估计的渐近性质不要求误差严格正态，但在小样本下，非正态误差会影响预测区间的准确性。QQ 图如果偏离对角线严重，考虑对原始数据做变换（如 Box-Cox 变换）。</p>
-
-        <p><strong>检查三：残差的方差齐性。</strong>画残差 vs. 拟合值散点图，看方差是否随着拟合值变化而变化。如果出现"喇叭形"（方差随拟合值增大而增大），说明原数据可能需要 log 变换。</p>
-
-        <table>
-            <tr>
-                <th>诊断工具</th>
-                <th>良好结果</th>
-                <th>问题信号</th>
-                <th>应对措施</th>
-            </tr>
-            <tr>
-                <td>残差 ACF</td>
-                <td>所有滞后在蓝线（95% 置信带）内</td>
-                <td>某滞后显著超出</td>
-                <td>调整 p 或 q，或增加季节性项</td>
-            </tr>
-            <tr>
-                <td>Ljung-Box 检验</td>
-                <td>p > 0.05</td>
-                <td>p < 0.05</td>
-                <td>同上，残差仍有信息未被提取</td>
-            </tr>
-            <tr>
-                <td>QQ 图</td>
-                <td>点沿对角线分布</td>
-                <td>尾部明显偏离</td>
-                <td>考虑 Box-Cox 变换或 robust 估计</td>
-            </tr>
-            <tr>
-                <td>参数的 p 值</td>
-                <td>p < 0.05</td>
-                <td>p > 0.05</td>
-                <td>移除该参数，简化模型</td>
-            </tr>
-        </table>
-
-        <h3>13.3 参数显著性检验与模型简化</h3>
-
-        <p>当你拟合了一个 ARIMA(3,1,2) 后，发现 φ₂ 的 p 值是 0.34（不显著），θ₂ 的 p 值是 0.52。这时你应该怎么做？</p>
-
-        <p>很多人的第一反应是"不管它，反正 AIC 已经很低了"。这是不对的。不显著的参数不仅增加了模型的复杂度，还会降低预测的稳定性。正确做法是：</p>
-
-        <ol>
-            <li>移除不显著的参数，尝试 ARIMA(2,1,1) 或 ARIMA(3,1,1)</li>
-            <li>对比简化前后的 AIC</li>
-            <li>如果简化后的 AIC 更低（或相差很小），选择简化模型</li>
-        </ol>
-
-        <p>为什么"简化模型通常更好"？想象一下，真实的数据生成过程是 ARIMA(1,0,1)，你估计了一个 ARIMA(5,0,5)。多出来的 8 个参数会尽力去拟合样本中的随机噪声——样本内拟合优度看起来很高，但样本外预测会大打折扣。这就是经典的过拟合。</p>
-
-        <div class="warning">
-            <strong>踩坑故事：</strong>我见过一个项目，分析师在建模时对每个时间序列都使用 SARIMA(2,1,2)(1,1,2)₁₂，理由是"这样足够灵活，能拟合任何数据"。结果在 50 个序列中有 30 个的某个参数不显著。更糟的是，统一模型导致所有序列的预测都"趋同"了——不同产品的预测模式变得一模一样，完全丧失了差异性。后来改用 auto.arima 为每个序列独立选择模型，虽然总参数数量减少了，但预测准确率提升了 15%。教训是：复杂的模型不等于好的模型。
-        </div>
-
-        <h3>13.4 Python 实操：完整的诊断流程</h3>
-
-        <pre><code>import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="Box–Jenkins 建模实践：可迭代流程、创新残差诊断、正态与方差齐性、参数显著性与过拟合、常见陷阱与可复现代码。"><title>建模实践与残差诊断 · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内目录"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html" aria-current="page">13　建模实践与诊断</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#workflow">01 · 一条可迭代的建模流程</a><a href="#residual">02 · 残差诊断的对象与检查</a><a href="#normality">03 · 正态性与方差齐性</a><a href="#significance">04 · 参数显著性与过拟合</a><a href="#pitfalls">05 · 常见陷阱</a><a href="#experiment">06 · Python：候选比较与诊断</a><a href="#wrap">07 · 与预测评估的衔接</a></div><div class="separ"></div><a href="../index.html#catalog">全部课程 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 13 / 28 · STATISTICAL MODELLING</p><h1>建模实践与残差诊断</h1><p class="dek">从拿到一个真实序列到给出可用模型，中间是一条可迭代的 Box–Jenkins 流程。本章把它拆成可执行的检查：残差诊断、正态与方差齐性、参数显著性与过拟合，以及最容易被忽略的时间泄露。</p><div class="meta">流程图解 · 原生数学排版 · 可复现代码 · 边界与诊断</div><p>前几章建立了 AR / MA / ARMA / ARIMA / SARIMA 的理论框架，但理论不等于可操作。真实数据里缺值、异常点、结构突变都会出现，模型选择也常常需要反复几轮。<strong>诊断不是建模的最后一步装饰，而是决定模型是否可用的关口。</strong></p><p>需要先纠正一个误解：<strong>“残差看起来干净”不等于“模型正确”</strong>。把阶数堆高可以把样本内的相关结构“吸干”，但这正是过拟合；判断模型价值最终要回到前向预测表现。</p></header>
+<section id="workflow" aria-labelledby="workflow-head"><h2 id="workflow-head">01 · 一条可迭代的建模流程</h2><p>规范的流程包含探索、识别、估计、诊断、验证五步，而且不是单向的：一旦残差诊断未通过，要回到识别阶段重新选阶或补季节项。</p><figure><img src="../assets/svg/13-workflow.svg" width="960" height="380" loading="lazy" alt="探索与变换、识别阶数、估计参数、残差诊断、前向验证五步流程，残差未通过时箭头回到识别阶段。"><figcaption>Box–Jenkins 流程的五步与回退箭头。虚线表示当残差诊断未通过时回到识别阶段，而不是直接进入预测。每一步的判断依据都应只使用训练集信息。图为流程示意。</figcaption></figure><ol><li><strong>探索与变换</strong>：画时序图，检查缺失值、趋势、季节性与异常点；必要时做方差稳定变换。</li><li><strong>识别阶数</strong>：结合差分结果与 ACF/PACF 形状，圈定 p,q,P,Q 的候选范围。</li><li><strong>估计参数</strong>：拟合 3~5 个候选模型，用信息准则初步比较。</li><li><strong>残差诊断</strong>：检验创新残差是否接近模型假设，这是最关键的关口。</li><li><strong>前向验证</strong>：用留出集或滚动起点评估真正未来窗口的预测。</li></ol><p>要强调<b>“识别阶段只能用训练集”</b>：如果先用全样本（含未来）的 ACF/PACF 去定阶，再去做样本外评估，就构成了时间泄露，评估结果会被系统性高估。</p></section>
+<section id="residual" aria-labelledby="residual-head"><h2 id="residual-head">02 · 残差诊断的对象与检查</h2><p>诊断的正确对象通常是模型的<strong>创新残差</strong>，而不一定是未经滤波的原始剩余。理想情况下它们不含可检出的线性自相关。最常用的两项检查是残差 ACF 与 Ljung–Box 检验。</p><figure><img src="../assets/svg/13-residual-acf.svg" width="960" height="380" loading="lazy" alt="左图设定正确模型的残差自相关各滞后接近零，右图遗漏季节项时残差自相关在滞后 12 明显为正。"><figcaption>左：设定正确时残差自相关在各滞后接近零；右：遗漏季节项时，残差自相关在滞后 12 明显为正——这正是“还缺季节结构”的信号。图为合成序列上的教学示意。</figcaption></figure><p>读数时要分清方向：<strong>Ljung–Box 的原假设是“前若干滞后无自相关”，p&gt;0.05 只是“没有拒绝”，并不证明残差是白噪声</strong>；接近零也不排除条件异方差或非线性依赖。此外，检验 ARMA(p,q) 残差时通常用 <code>model_df=p+q</code> 调整自由度，且最大滞后必须大于该自由度。</p></section>
+<section id="normality" aria-labelledby="normality-head"><h2 id="normality-head">03 · 正态性与方差齐性</h2><p>残差 ACF 干净只能说明“没有剩余线性自相关”。在关心<strong>预测区间</strong>的小样本情形，还需检查误差分布形状与方差是否稳定。</p><figure><img src="../assets/svg/13-residual-qq.svg" width="960" height="380" loading="lazy" alt="左图正态残差的 QQ 点沿对角线分布，右图厚尾残差的点在对角线两端向外弯折。"><figcaption>QQ 图读法：正态残差的点基本沿对角线；厚尾残差的点在对角线两端向外弯折，意味着尾部比正态更重，正态假设下的预测区间可能偏窄。图为正态与 t 分布样本的教学示意。</figcaption></figure><p>另一个常见检查是残差对拟合值的散点图：如果方差随拟合值增大而呈“喇叭形”，往往提示需要对原序列做方差稳定变换（例如对数或 Box–Cox），而不是简单地加阶数。<strong>这些检查不满足时，参数的无偏性可能尚可，但区间校准会受影响。</strong></p></section>
+<section id="significance" aria-labelledby="significance-head"><h2 id="significance-head">04 · 参数显著性与过拟合</h2><p>拟合出 ARIMA(3,1,2) 后若发现 φ₂、θ₂ 不显著，稳妥做法是移除这些参数、重新估计，再比较简化前后。信息准则提供了复杂度与拟合的显式权衡。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="AIC 与 BIC 的定义"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="AIC 与 BIC 的定义式"><mrow><mi>AIC</mi><mo>=</mo><mo>−</mo><mn>2</mn><mi>ln</mi><mover><mi>L</mi><mo>^</mo></mover><mo>+</mo><mn>2</mn><mi>k</mi><mo>,</mo><mspace width="1.2em"/><mi>BIC</mi><mo>=</mo><mo>−</mo><mn>2</mn><mi>ln</mi><mover><mi>L</mi><mo>^</mo></mover><mo>+</mo><mi>k</mi><mi>ln</mi><mi>n</mi></mrow></math><div class="formula-note">k 为估计参数个数，n 为可比样本量，L̂ 为最大化的似然。BIC 对 k 的惩罚（k ln n）重于 AIC（2k），因此更倾向简洁模型；两者都需在相同训练区间、均值/差分与似然约定下比较。</div></div><p>为什么偏好简洁？若真实数据生成过程是 ARIMA(1,0,1)，却估计了一个 ARIMA(5,0,5)，多出的参数会去拟合样本中的随机噪声——样本内拟合优度看着很高，样本外却变差，这就是典型的过拟合。<strong>“参数越灵活越好”是一个危险的直觉。</strong></p></section>
+<section id="pitfalls" aria-labelledby="pitfalls-head"><h2 id="pitfalls-head">05 · 常见陷阱</h2><div class="table-scroll"><table><thead><tr><th scope="col">陷阱</th><th scope="col">表现</th><th scope="col">缓解方式</th></tr></thead><tbody><tr><td>过拟合 / 伪诊断</td><td>阶数很高，样本内残差很“干净”，样本外变差</td><td>用 BIC 或前向验证；检查是否只是把噪声吸干</td></tr><tr><td>忽略异常值</td><td>单个巨大异常点扭曲参数与自相关</td><td>建模前先检测并处理异常点，并记录依据</td></tr><tr><td>时间泄露</td><td>用含未来的全样本 ACF 定阶，再报样本外指标</td><td>识别与估计只用训练集</td></tr><tr><td>自动搜索即终点</td><td>直接采用 auto.arima / pmdarima 的推荐</td><td>把它当候选起点，再结合残差与前向预测核对</td></tr></tbody></table></div><p>这些陷阱的共同点是：<strong>它们都只影响未来的、未参与训练的预测，而不是样本内拟合。</strong>因此前向验证不是可选项，而是把诊断结论落地的唯一方式，具体做法放在下一章。</p></section>
+<section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">06 · Python：候选比较与诊断</h2><p>下面用真实数据生成过程 ARIMA(0,1,1)（差分序列为 <code>wₜ=εₜ+θ εₜ₋₁</code> 再累加回水平）生成序列，对若干候选阶数比较 AIC/BIC，并对选中模型做 Ljung–Box 检验。只依赖 numpy 与 statsmodels。</p><pre tabindex="0"><code>import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.stats.diagnostic import acorr_ljungbox
-from statsmodels.graphics.tsaplots import plot_acf
-import scipy.stats as stats
 
-# 生成模拟数据（真实的 DGP: ARIMA(1,1,1)）
-np.random.seed(42)
-n = 500
-Y = np.zeros(n)
-eps = np.random.normal(0, 1, n)
-phi1, theta1 = 0.6, -0.4
-
-# 生成带趋势的非平稳数据
-Y[0] = 0
+rng = np.random.default_rng(13)
+n, theta1 = 500, -0.4
+e = rng.standard_normal(n)
+w = np.zeros(n)
 for t in range(1, n):
-    Y[t] = Y[t-1] + phi1*(Y[t-1] - Y[t-2]) + eps[t] + theta1*eps[t-1]
+    w[t] = e[t] + theta1 * e[t-1]   # 差分序列 / MA(1)
+y = np.cumsum(w)                     # 积分回水平
 
-# 第一步：差分
-Y_diff = np.diff(Y)
+train, test = y[:-60], y[-60:]
+rows = []
+for p in range(3):
+    for q in range(3):
+        if p == 0 and q == 0:
+            continue
+        fit = ARIMA(train, order=(p, 1, q), trend=&quot;n&quot;).fit()
+        rows.append((round(fit.aic, 2), round(fit.bic, 2), (p, 1, q)))
+rows.sort()
+print(&quot;AIC 最优候选:&quot;, rows[0])   # 期望接近真实阶数 (0, 1, 1)
 
-# 第二步：拟合候选模型
-models_candidates = [
-    (1, 0, 1), (1, 0, 2), (2, 0, 1), (2, 0, 2)
-]
-results = []
-for p, d, q in models_candidates:
-    model = ARIMA(Y_diff, order=(p, d, q), trend='c')
-    res = model.fit()
-    results.append({
-        'order': (p, d, q),
-        'aic': res.aic,
-        'bic': res.bic
-    })
-
-df_models = pd.DataFrame(results)
-print("候选模型比较：")
-print(df_models.sort_values('aic'))
-
-# 第三步：选定最优模型并做残差诊断
-best_order = (1, 0, 1)  # 假设这个最优
-final_model = ARIMA(Y_diff, order=best_order, trend='c')
-final_res = final_model.fit()
-
-residuals = final_res.resid
-
-# 诊断图
-fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-
-# 图1：残差序列
-axes[0, 0].plot(residuals)
-axes[0, 0].axhline(y=0, color='r', linestyle='--')
-axes[0, 0].set_title('残差序列')
-
-# 图2：残差 ACF
-plot_acf(residuals, lags=30, ax=axes[0, 1])
-axes[0, 1].set_title('残差 ACF')
-
-# 图3：QQ 图
-stats.probplot(residuals, dist="norm", plot=axes[1, 0])
-axes[1, 0].set_title('QQ 图')
-
-# 图4：Ljung-Box 检验 p 值
-lb_test = acorr_ljungbox(residuals, lags=[10, 20, 30], return_df=True)
-axes[1, 1].bar(range(len(lb_test)), lb_test['lb_pvalue'])
-axes[1, 1].axhline(y=0.05, color='r', linestyle='--')
-axes[1, 1].set_title('Ljung-Box p 值')
-axes[1, 1].set_xticks(range(len(lb_test)))
-axes[1, 1].set_xticklabels(['lag=10', 'lag=20', 'lag=30'])
-
-plt.tight_layout()
-plt.show()
-
-# 打印残差诊断结果
-print("\nLjung-Box 检验结果：")
-print(lb_test)</code></pre>
-
-        <div class="highlight">
-            <strong>诊断总结：</strong>一个好的模型的残差诊断应该满足——(1) 残差 ACF 所有滞后在置信带内，(2) Ljung-Box p 值 > 0.05，(3) QQ 图基本沿着对角线，(4) 所有参数显著（p < 0.05）。如果其中任何一条不满足，请回到识别阶段重新开始。
-        </div>
-
-        <h3>13.5 实战中的常见陷阱</h3>
-
-        <p>以下是我在多年实践中遇到的最常见问题：</p>
-
-        <ul>
-            <li><strong>"伪诊断"陷阱：</strong>你拟合了一个 ARIMA(7,1,7)，残差 ACF 看起来很干净，但这是因为你把所有信号都吸干了——包括噪声。用 BIC 替换 AIC 做选择，BIC 对参数数量的惩罚更严格，能缓解过拟合。</li>
-            <li><strong>"忽略异常值"陷阱：</strong>一个巨大的异常值会扭曲所有参数估计。在建模前先做异常值检测和处理（如 Winsorize 或用插值替换）。</li>
-            <li><strong>"时间泄露"陷阱：</strong>在模型识别阶段，如果你偷偷看了全样本的 ACF/PACF 图（包括未来的数据），你的模型选择就会"作弊"。在真实项目中，始终用训练集做识别和估计，用测试集做验证。</li>
-            <li><strong>"自动就是好"陷阱：</strong>auto.arima 很方便，但它有时会选择过于复杂的模型，或者在有结构突变的数据上表现很差。永远手动验证 auto.arima 的推荐结果。</li>
-        </ul>
-
-        <p>建模诊断做完了，残差通过了所有检验，模型参数都显著，看起来一切完美。但等等——我们建模的最终目的是什么？是预测！一个在诊断阶段表现完美的模型，预测效果可能仍然很差。下一章我们将学习如何评估预测效果，计算预测区间，以及用多种指标来比较不同模型的预测能力。这才是真正检验模型价值的时刻。</p>
-
-        <div class="footer-nav">
-            <a href="12.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="14.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+best = ARIMA(train, order=rows[0][2], trend=&quot;n&quot;).fit()
+print(acorr_ljungbox(best.resid, lags=[12],
+                     model_df=rows[0][2][0] + rows[0][2][2]))
+assert len(rows) == 8</code></pre><p>此例中 AIC 会选出与真实 DGP 一致的 (0,1,1)，但<strong>这只说明在该合成数据与信息准则下如此，不保证真实数据上同样成立</strong>；真实项目中还需对比朴素基准并做滚动前向评估。</p></section>
+<section id="wrap" aria-labelledby="wrap-head"><h2 id="wrap-head">07 · 与预测评估的衔接</h2><p>诊断通过只意味着模型与假设不矛盾，不意味着它值得使用。下一章把重心转向评估：怎样切分训练/测试、怎样做滚动起点前向验证、怎样用 MAE/RMSE/MASE 等指标与朴素基准比较，以及预测区间应当如何校准。</p><div class="thought"><strong>一个可用的模型报告需要回答：</strong>识别与估计是否只用了训练集？残差是否同时通过自相关与分布检查？参数是否有依据地简化过？在最接近部署的前向评估中，它是否至少不劣于朴素基准？</div></section>
+<section id="references"><h2>进一步阅读与技术核对</h2><p>引用指向流程、检验与接口的官方资料。</p><ol class="refs"><li><a href="https://otexts.com/fpp3/arima.html" target="_blank" rel="noopener noreferrer">FPP3：ARIMA 建模与残差诊断</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.stats.diagnostic.acorr_ljungbox.html" target="_blank" rel="noopener noreferrer">statsmodels：Ljung–Box 检验</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html" target="_blank" rel="noopener noreferrer">statsmodels：ARIMA 模型 API</a></li><li><a href="https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc446.htm" target="_blank" rel="noopener noreferrer">NIST：ARIMA 模型识别</a></li></ol></section><nav class="bottom-nav" aria-label="章节导航"><a href="12.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="14.html">下一章 →</a></nav></article></main></div></body></html>
