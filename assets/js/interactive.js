@@ -14,6 +14,11 @@ function data(kind,v){
   if(d===1)return {values:[1,0,0,0,0,0,0,0,0],text:'d=1：Δy_t=ε_t 是白噪声，除 ρ(0)=1 外自相关理论值为 0。'};
   return {values:[1,-0.5,0,0,0,0,0,0,0],text:'d=2：Δ²y_t=(1−B)ε_t 是 θ=−1 的 MA(1)，ρ(1)=−0.5，这是过度差分的典型信号。'};
  }
+ if(kind==='season'){
+  const s=Math.round(v);
+  const values=Array.from({length:24},(_,k)=>k===0?1:(k%s===0?0.62:0));
+  return {values,text:'季节周期 s='+s+'：自相关在滞后 '+s+'、'+(2*s)+'（周期的整数倍）出现峰，这种远程依赖是普通 ARMA 直接拟合困难的。'};
+ }
  return {values:[],text:''};
 }
 for(const root of labs){
@@ -27,7 +32,7 @@ for(const root of labs){
     const v=Number(slider.value);
     if(!Number.isFinite(v))return;
     const result=data(kind,v);
-    const display=kind==='period'||kind==='diff'?String(Math.round(v)):v.toFixed(2);
+    const display=kind==='period'||kind==='diff'||kind==='season'?String(Math.round(v)):v.toFixed(2);
     output.value=display;output.textContent=display;
     note.textContent=result.text;
     chart.replaceChildren();

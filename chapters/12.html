@@ -1,218 +1,29 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第12章 季节性ARIMA</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html" class="active">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-        <h2>第12章 季节性ARIMA (SARIMA)</h2>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="季节性 ARIMA 用 (p,d,q)(P,D,Q)s 同时刻画短程依赖与以周期为间隔的远程季节依赖：理解季节差分、成分耦合、两层定阶与预测。"><title>季节性 ARIMA (SARIMA) · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内目录"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html" aria-current="page">12　季节性 ARIMA</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#challenge">01 · 季节性是一种远程依赖</a><a href="#notation">02 · (p,d,q)(P,D,Q)s 记号</a><a href="#sdiff">03 · 季节差分在做什么</a><a href="#coupling">04 · 季节与非季节成分的耦合</a><a href="#orders">05 · 两层 ACF/PACF 与定阶</a><a href="#forecast">06 · 预测再现季节形状</a><a href="#interactive">07 · 改变周期观察自相关峰</a><a href="#experiment">08 · Python：SARIMAX 拟合与预测</a><a href="#wrap">09 · 与诊断章的衔接</a></div><div class="separ"></div><a href="../index.html#catalog">全部课程 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 12 / 28 · STATISTICAL MODELLING</p><h1>季节性 ARIMA：同时刻画短程与季节依赖</h1><p class="dek">SARIMA(p,d,q)(P,D,Q)s 在 ARIMA 之上叠加一层以周期 s 为间隔的季节结构。本章解释季节差分的含义、两层多项式的耦合、两段式定阶，以及为什么预测会再现季节形状。</p><div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 边界与诊断</div><p>第 11 章的差分只处理相邻时刻的依赖。但电商销量、电力负荷、气温这类序列的依赖发生在<strong>以固定周期为间隔</strong>的滞后上——今年 7 月与去年 7 月相关。普通 ARIMA 要在滞后 12、24、36 都放上参数才能逼近它，代价高且不自然。<strong>SARIMA 的做法是增加一套专门作用在季节滞后上的 ARMA 结构</strong>，而不是简单叠加两个独立模型。</p><p>需要先纠正一个误解：<strong>“有季节图形”不等于“必须做季节差分”</strong>。稳健的确定性季节性可以用季节哑变量或傅里叶项处理；只有当季节性本身随时间漂移（季节单位根）时，才对它差分，即 D=1。</p></header>
+<section id="challenge" aria-labelledby="challenge-head"><h2 id="challenge-head">01 · 季节性是一种远程依赖</h2><p>若序列满足 <code>yₜ=yₜ₋ᛋ+εₜ</code>（季节随机游走），则相邻时刻几乎无关，但相隔 s 的观测高度相关，自相关在 s、2s、3s 处维持接近 1。ARMA 的“短程”假设无法直接表达这种结构。</p><figure><img src="../assets/svg/12-seasonal-acf.svg" width="960" height="380" loading="lazy" alt="左图季节随机游走的样本自相关在滞后 12、24、36 接近 1，右图季节差分后这些峰消失。"><figcaption>左：季节随机游走 <code>yₜ=yₜ₋₁₂+εₜ</code> 的自相关在滞后 12、24、36 上接近 1；右：做一次季节差分 <code>Δ₁₂yₜ</code> 后，这些峰基本消失。图为固定种子的合成数据教学示意，非真实序列。</figcaption></figure><p>还要把<strong>季节性</strong>与<strong>不规则循环</strong>分开：季节性有固定周期，适合用 s 描述；循环（如商业周期）周期不固定，通常需要更长记忆或其他模型，不能硬塞进季节项。</p></section>
+<section id="notation" aria-labelledby="notation-head"><h2 id="notation-head">02 · (p,d,q)(P,D,Q)s 记号</h2><p>记号 <code>SARIMA(p,d,q)(P,D,Q)s</code> 分两组：小写 <code>(p,d,q)</code> 管非季节部分，与第 11 章相同；大写 <code>(P,D,Q)</code> 管季节部分，<code>s</code> 是周期长度。用滞后算子写出完整的乘积形式。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="SARIMA 的算子形式"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="SARIMA 算子形式：非季节与季节多项式相乘"><mrow><msub><mi>Φ</mi><mi>p</mi></msub><mo>(</mo><mi>B</mi><mo>)</mo><msub><mi>Φ</mi><mi>P</mi></msub><mo>(</mo><msup><mi>B</mi><mi>s</mi></msup><mo>)</mo><msup><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi>B</mi><mo>)</mo></mrow><mi>d</mi></msup><msup><mrow><mo>(</mo><mn>1</mn><mo>−</mo><msup><mi>B</mi><mi>s</mi></msup><mo>)</mo></mrow><mi>D</mi></msup><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><msub><mi>Θ</mi><mi>q</mi></msub><mo>(</mo><mi>B</mi><mo>)</mo><msub><mi>Θ</mi><mi>Q</mi></msub><mo>(</mo><msup><mi>B</mi><mi>s</mi></msup><mo>)</mo><msub><mi>ε</mi><mi>t</mi></msub></mrow></math><div class="formula-note">季节多项式如 Φ_P(Bˢ)=1−Φ₁Bˢ−…−Φ_P B^{Ps}。大写 Φ、Θ 表示季节参数，与小写 φ、θ 区分。四个多项式相乘意味着两部分不是独立的加法，而是相互交织。</div></div><p>坐标选择上，<code>s</code> 由数据频率决定：月度 s=12，季度 s=4，周度 s=7（若按周聚合）。<code>s</code> 选错会让季节项作用在错误的滞爱上，是实践中高频的错误来源。</p></section>
+<section id="sdiff" aria-labelledby="sdiff-head"><h2 id="sdiff-head">03 · 季节差分在做什么</h2><p>非季节差分 <code>Δyₜ=yₜ−yₜ₋₁</code> 比较的是相邻时刻；季节差分 <code>Δ_s yₜ=yₜ−yₜ₋ₛ</code> 比较的是相隔一个周期的同一相位，例如“今年 7 月 vs 去年 7 月”。用算子写作 <code>Δ_s=(1−Bˢ)</code>。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="季节差分的算子表示"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="季节差分 Δ_s = (1 − B^s)"><mrow><msub><mi>Δ</mi><mi>s</mi></msub><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mo>(</mo><mn>1</mn><mo>−</mo><msup><mi>B</mi><mi>s</mi></msup><mo>)</mo><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><msub><mi>y</mi><mi>t</mi></msub><mo>−</mo><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mi>s</mi></mrow></msub></mrow></math><div class="formula-note">与小写 d 的关键区别：d 衡量“趋势的非平稳”，D 衡量“季节形状本身的漂移”。二者可以同时使用（如 d=1 且 D=1）。</div></div><p>选择 D 同样要避免过度差分：如果季节形状多年稳定（只有确定性季节性），做 <code>Δ_s</code> 会在季节滞后上引入负相关（类似第 11 章的过度差分）。应先看季节滞后上的自相关是否随年份缓慢漂移，再决定 D。</p></section>
+<section id="coupling" aria-labelledby="coupling-head"><h2 id="coupling-head">04 · 季节与非季节成分的耦合</h2><p>由于四个多项式是相乘的，展开后会出现<strong>混合滞后</strong>的交叉项。以最简单的 SARIMA(1,0,0)(1,0,0)₁₂ 为例，把 <code>(1−φB)(1−ΦB¹²)</code> 展开即可看出。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="SARIMA(1,0,0)(1,0,0)12 的展开"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="耦合模型展开含 −φΦ y_{t−13} 交叉项"><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>φ</mi><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>Φ</mi><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>12</mn></mrow></msub><mo>−</mo><mi>φ</mi><mi>Φ</mi><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>13</mn></mrow></msub><mo>+</mo><msub><mi>ε</mi><mi>t</mi></msub></mrow></math><div class="formula-note">滞后 13 = 1 + 12 处的交叉项 −φΦ 不是额外参数，而是乘法的必然结果。因此模型在非季节阶数之外，会隐含产生一些混合滞后效应。</div></div><figure><img src="../assets/svg/12-coupling.svg" width="960" height="380" loading="lazy" alt="SARIMA(1,0,0)(1,0,0)12 的理论冲击响应在滞后 1、12、13、24 处非零，滞后 13 是两者的交叉项。"><figcaption>上式的理论冲击响应 ψₖ：非零权重只出现在形如 <code>1·i+12·j</code> 的滞后上，所以滞后 13 同时受普通反馈与季节反馈影响。图为按 φ=Φ=0.5 的解析系数绘制的教学示意，非估计结果。</figcaption></figure><p>实务含义：看到滞后 13 的显著自相关时，先别急着加参数，它可能只是交叉项；反之也不能把 SARIMA 当成“两个独立 ARMA 相加”，因为它们会通过这样的交叉项相互影响。</p></section>
+<section id="orders" aria-labelledby="orders-head"><h2 id="orders-head">05 · 两层 ACF/PACF 与定阶</h2><p>定阶时分两层看：短滞后（1…s−1）决定 p、q，季节滞后（s、2s…）决定 P、Q。季节部分的规律与非季节平行，但有限样本相关图有噪声，不能机械照搬。</p><div class="table-scroll"><table><thead><tr><th scope="col">成分</th><th scope="col">季节滞后上的 ACF</th><th scope="col">季节滞后上的 PACF</th></tr></thead><tbody><tr><td>季节 AR： SAR(P)</td><td>拖尾（s、2s、3s 逐渐衰减）</td><td>在滞后 Ps 后截尾</td></tr><tr><td>季节 MA： SMA(Q)</td><td>在滞后 Qs 后截尾</td><td>拖尾</td></tr></tbody></table></div><p>SARIMA 有七个维度（p,d,q,P,D,Q,s），手动搜索成本高。先用 auto.arima / pmdarima 在固定 s 下自动给出候选，再依据残差与前向预测微调。大多数情形 D≤1、P≤2、Q≤2 已足够，但<strong>“自动选出的最小 AICc”仍不是预测最优的证明</strong>。</p></section>
+<section id="forecast" aria-labelledby="forecast-head"><h2 id="forecast-head">06 · 预测再现季节形状</h2><p>SARIMA 的多步预测会把估计到的季节形状重复外推，同时叠加非季节动态与漂移。因此与纯 ARIMA 不同，水平预测会呈现周期性起伏，而不是单调趋向一条线。</p><figure><img src="../assets/svg/12-sarima-forecast.svg" width="960" height="380" loading="lazy" alt="历史序列后接一段重复季节形状的点预测，预测区间随步长按根号变宽。"><figcaption>含季节结构的序列：点预测（青）延续历史中反复出现的季节形状，区间（紫浅带）随步长按约 <code>√h</code> 变宽。图为按解析形式绘制的教学示意，非软件拟合输出。</figcaption></figure><p>要警惕“季节性会无限精确重现”的错觉：若季节形状本身每年随机漂移（存在季节单位根），远处月份的区间会非常宽，因为季节相位的不确定性也被积分放大。</p></section>
+<section id="interactive" aria-labelledby="interactive-head"><h2 id="interactive-head">07 · 改变周期观察自相关峰</h2><p>拖动滑块改变季节周期 s，看理论自相关峰出现的位置。峰在滞后 s、2s 处——这正是普通 ARMA 需要很多参数才能延迟到的“远程依赖”。</p><div class="concept-lab" data-lab="season"><label for="season-param">设置季节周期 s = <output data-lab-output for="season-param">12</output></label><input id="season-param" data-lab-input type="range" min="2" max="12" step="2" value="12"><div class="lab-explainer" data-lab-description aria-live="polite">季节周期 s=12：自相关在滞后 12、24（周期的整数倍）出现峰。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">本图为理论自相关的示意，不是从真实数据估计出来的。</p></div></section>
+<section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">08 · Python：SARIMAX 拟合与预测</h2><p>下面生成“确定性季节形状 + 随机游走水平”，用 SARIMAX 拟合 (0,1,1)(0,1,1)₁₂，对最后 24 期做一次性多步预测。只依赖 numpy 与 statsmodels。</p><pre tabindex="0"><code>import numpy as np
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+from statsmodels.stats.diagnostic import acorr_ljungbox
 
-        <p>大家好！前一章我们学习了 ARIMA 模型，它通过差分解决了趋势非平稳问题。但如果数据还有另一个常见的非平稳来源——季节性，ARIMA 就力不从心了。</p>
-
-        <p>想一想这些场景：电商销售额在每年双十一暴涨，冰淇淋销量每夏季达到顶峰，电力消耗在每天傍晚出现高峰……这些都是季节性模式。季节性的特点是：它会在固定间隔的时间点上重复出现。处理季节性，我们需要一个更强大的工具——季节性 ARIMA，简称 SARIMA。</p>
-
-        <h3>12.1 季节性带来的挑战</h3>
-
-        <p>季节性对时间序列建模意味着什么？假设你有每月的气温数据，周期 s=12（12 个月一个轮回）。如果你用普通的 ARIMA(1,1,1) 来拟合，会发生两件事：</p>
-
-        <ul>
-            <li>ACF 和 PACF 在季节性滞后（如滞后 12、24、36）上出现显著高峰</li>
-            <li>残差在季节性滞后上仍然有强烈的自相关，说明模型没有捕捉到季节性</li>
-            <li>预测结果会忽视季节模式——比如预测 7 月的气温和 1 月一样低，明显荒唐</li>
-        </ul>
-
-        <p>ARIMA 模型假设数据只存在"短程依赖"（recent lags matter），而季节性本质上是"远程依赖"（lags at multiples of s also matter）。要处理这种远程依赖，我们需要在 ARIMA 框架中增加专门的季节性成分。</p>
-
-        <div class="highlight">
-            <strong>关键洞察：</strong>季节性 ARIMA 不是对 ARIMA 的替代，而是对 ARIMA 的扩展。它相当于在 ARIMA 的基础上，"并行地"增加了一套针对季节性滞后的 ARMA 结构。
-        </div>
-
-        <h3>12.2 SARIMA(p,d,q)(P,D,Q)s 的含义</h3>
-
-        <p>SARIMA 的完整记号是 SARIMA(p,d,q)(P,D,Q)s，看起来参数很多，但分解后并不复杂：</p>
-
-        <table>
-            <tr>
-                <th>参数</th>
-                <th>含义</th>
-            </tr>
-            <tr>
-                <td>p, d, q</td>
-                <td>非季节性部分的 ARIMA 阶数（和之前一样）</td>
-            </tr>
-            <tr>
-                <td>P</td>
-                <td>季节性自回归阶数（如 P=1 表示 Y_{t-s} 对 Y_t 有线性影响）</td>
-            </tr>
-            <tr>
-                <td>D</td>
-                <td>季节性差分阶数（如 D=1 表示做 Δ_s Y_t = Y_t - Y_{t-s}）</td>
-            </tr>
-            <tr>
-                <td>Q</td>
-                <td>季节性移动平均阶数（如 Q=1 表示 ε_{t-s} 对 Y_t 有影响）</td>
-            </tr>
-            <tr>
-                <td>s</td>
-                <td>季节周期长度（月度数据 s=12，季度数据 s=4，周数据 s=7）</td>
-            </tr>
-        </table>
-
-        <p>完整模型（不写常数项）为：</p>
-
-        <p><strong>Φ_p(L) Φ_P(L^s) (1-L)^d (1-L^s)^D Y_t = Θ_q(L) Θ_Q(L^s) ε_t</strong></p>
-
-        <p>其中 Φ_P(L^s) = 1 - Φ₁L^s - Φ₂L^{2s} - ... - Φ_PL^{Ps} 处理季节性自回归，Θ_Q(L^s) 处理季节性移动平均。注意大写字母 Φ 和 Θ 表示季节性参数，与非季节性的小写 φ 和 θ 区分。</p>
-
-        <div class="tip">
-            <strong>理解季节性差分：</strong>非季节性差分 ΔY_t = Y_t - Y_{t-1} 移除的是"相邻时刻的趋势"；季节性差分 Δ_s Y_t = Y_t - Y_{t-s} 移除的是"周期之间的趋势"。比如对月度数据做 Δ₁₂Y_t = Y_t - Y_{t-12}，得到的是"今年 7 月相比去年 7 月的变化量"。如果这个变化量是平稳的，那 D=1 就够了。
-        </div>
-
-        <h3>12.3 季节性 ACF 与 PACF 模式</h3>
-
-        <p>判断 SARIMA 的参数和非季节性 ARIMA 一样，要借助 ACF 和 PACF。只是现在需要同时看"短滞后"和"季节性滞后"。</p>
-
-        <p>假设数据是月度周期（s=12），ACF 和 PACF 的解读需要分两层：</p>
-
-        <ul>
-            <li><strong>非季节性部分：</strong>观察滞后 1~11 的 ACF/PACF 模式，这决定了 p 和 q</li>
-            <li><strong>季节性部分：</strong>观察滞后 12、24、36 的 ACF/PACF 模式，这决定了 P 和 Q</li>
-        </ul>
-
-        <p>季节性 ACF/PACF 的判断规则和非季节性是平行的：</p>
-
-        <table>
-            <tr>
-                <th>季节性成分</th>
-                <th>季节性滞后上的 ACF</th>
-                <th>季节性滞后上的 PACF</th>
-            </tr>
-            <tr>
-                <td>SAR(P)</td>
-                <td>拖尾（在 s, 2s, 3s 上逐渐衰减）</td>
-                <td>在滞后 Ps 后截尾</td>
-            </tr>
-            <tr>
-                <td>SMA(Q)</td>
-                <td>在滞后 Qs 后截尾</td>
-                <td>拖尾（在 s, 2s, 3s 上逐渐衰减）</td>
-            </tr>
-        </table>
-
-        <div class="warning">
-            <strong>踩坑故事：</strong>我接手的一个零售预测项目中，同事用 SARIMA(1,1,1)(1,1,1)₁₂ 拟合了所有 500 个 SKU 的月销量数据，结果有一半的 SKU 预测结果极差。调试后发现，很多 SKU 的 s 根本不是 12——有些快消品有 4 周的补货周期（s=4），有些有 13 周的季度周期（s=13）。更糟糕的是，季节性差分的阶数 D 被统一设为 1，但某些 SKU 的季节性非常稳定，根本不需要季节性差分。教训是：不要盲目套用默认参数，一定要逐个检查每个序列的 ACF/PACF 特征。
-        </div>
-
-        <h3>12.4 季节性成分与非季节性成分的耦合</h3>
-
-        <p>SARIMA 的一个微妙之处是季节性部分和非季节性部分会"耦合"（coupling）。它们不是完全独立的两个模型简单地相加，而是会通过数据相互影响。</p>
-
-        <p>举个具体的例子。假设你拟合了 SARIMA(1,0,0)(1,0,0)₁₂ 模型：</p>
-
-        <p><strong>Y_t = c + φ₁Y_{t-1} + Φ₁Y_{t-12} - φ₁Φ₁Y_{t-13} + ε_t</strong></p>
-
-        <p>注意看！这个模型在滞后 13 处有一个交叉项 -φ₁Φ₁Y_{t-13}。这是多项式乘法 (1-φ₁L)(1-Φ₁L¹²)Y_t 展开的结果。这个交叉项是自动出现的，它意味着季节性模型隐含地包含了一些"混合滞后"的效应。</p>
-
-        <p>这种现象在实际中意味着什么？如果你发现一个 SARIMA(1,0,0)(1,0,0)₁₂ 模型在滞后 13 处有显著的自相关残留，不要急着增加额外的参数——先检查是不是交叉项的系数估计出了问题。</p>
-
-        <div class="highlight">
-            <strong>实用建议：</strong>SARIMA 的参数空间很大（p,d,q,P,D,Q,s 七个维度），手动搜索非常耗时。建议先用 auto.arima 或 pmdarima 的 auto_arima 函数设置 seasonal=True 进行自动搜索，再根据残差诊断微调。大多数情况下，D ≤ 1，P ≤ 2，Q ≤ 2 就足够了。
-        </div>
-
-        <h3>12.5 Python 实操：SARIMA 建模</h3>
-
-        <pre><code>import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-
-# 生成带季节性的模拟数据（月度周期 s=12）
-np.random.seed(42)
-n = 300  # 25 年
+rng = np.random.default_rng(12)
+n = 300
 t = np.arange(n)
-trend = 0.1 * t
-seasonal = 5 * np.sin(2 * np.pi * t / 12)
-noise = np.random.normal(0, 1, n)
-Y = trend + seasonal + noise
+season = 6.0 * np.sin(2 * np.pi * t / 12)        # 确定性季节形状
+y = season + np.cumsum(rng.standard_normal(n))    # 叠加随机游走水平
 
-# 区分趋势和季节性
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 6))
-ax1.plot(Y)
-ax1.set_title('原始数据（趋势 + 季节性 + 噪声）')
+train, test = y[:-24], y[-24:]
+fit = SARIMAX(train, order=(0, 1, 1), seasonal_order=(0, 1, 1, 12),
+              trend=&quot;c&quot;, enforce_stationarity=False,
+              enforce_invertibility=False).fit(disp=False)
+forecast = fit.forecast(steps=len(test))
+print(&quot;样本外 MAE:&quot;, np.mean(np.abs(forecast - test)))
+print(acorr_ljungbox(fit.resid, lags=[24]))
 
-# 对季节性差分后的序列画 ACF/PACF
-Y_seas_diff = pd.Series(Y).diff(12).dropna()
-plot_acf(Y_seas_diff, lags=30, ax=ax2)
-plt.show()
-
-# 拟合 SARIMA(0,1,1)(0,1,1)12
-# 注意：在 ARIMA 类中，seasonal_order 参数指定季节性部分
-model = ARIMA(
-    Y,
-    order=(0, 1, 1),                # 非季节性: ARIMA(0,1,1)
-    seasonal_order=(0, 1, 1, 12),    # 季节性: (0,1,1) 周期 12
-    trend='c'
-)
-result = model.fit()
-print(result.summary())
-
-# 预测未来 24 个月
-forecast = result.forecast(steps=24)
-plt.figure(figsize=(12, 4))
-plt.plot(Y, label='历史值')
-plt.plot(np.arange(n, n+24), forecast, 'r--', label='预测值')
-plt.legend()
-plt.title('SARIMA 预测 - 未来 24 个月')
-plt.show()</code></pre>
-
-        <p>SARIMA 模型是目前为止我们学习的最完整的"经典时间序列模型"。它能够同时处理趋势非平稳（通过 d）和季节性非平稳（通过 D），是 ARIMA 家族中最强大的成员。但模型参数越多，选择越复杂——到底哪个 (p,d,q)(P,D,Q)s 组合才是最优的？这需要系统的建模实践和诊断方法。下一章我们将进入 Box-Jenkins 流程的核心环节，学习如何做模型诊断、检验假设、规避常见的陷阱。</p>
-
-        <div class="footer-nav">
-            <a href="11.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="13.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+assert len(forecast) == len(test) == 24</code></pre><p><code>seasonal_order=(P,D,Q,s)</code> 中的 <code>s</code> 必须与数据的真实周期一致。此处 s=12 与生成过程匹配；如果误设为 4，季节差分就作用在错误的滞爱上。<strong>示例只验证结构性质（预测长度一致、可用残差检验），不声称 SARIMA 优于更简单的季节基准</strong>；真实项目应对比季节朴素法。</p></section>
+<section id="wrap" aria-labelledby="wrap-head"><h2 id="wrap-head">09 · 与诊断章的衔接</h2><p>SARIMA 把第 11 章的差分扩展到季节维度，是经典 ARIMA 家族里参数最多的一员。参数一旦变多，过拟合、根越界与残差自相关的风险也随之上升。下一章把散落在各章的检查整理成一个可执行的 Box–Jenkins 建模流程：如何看残差、如何做假设检验、如何避免常见陷阱。</p><div class="thought"><strong>一个完整的 SARIMA 报告应该回答：</strong>数据频率与周期 s 如何确定？D 的依据是季节滞后自相关的漂移还是习惯？各多项式根是否在单位圆外？季节与非季节残差是否都接近白噪声？样本外是否至少不劣于季节朴素基准？</div></section>
+<section id="references"><h2>进一步阅读与技术核对</h2><p>引用指向定义、接口与检验的官方资料。文中的图与模拟均为教学示意，并非经验表现的证明。</p><ol class="refs"><li><a href="https://otexts.com/fpp3/seasonal-arima.html" target="_blank" rel="noopener noreferrer">FPP3：季节 ARIMA 模型</a></li><li><a href="https://otexts.com/fpp3/arima.html" target="_blank" rel="noopener noreferrer">FPP3：非季节 ARIMA 与差分</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.statespace.sarimax.SARIMAX.html" target="_blank" rel="noopener noreferrer">statsmodels：SARIMAX API</a></li><li><a href="https://www.statsmodels.org/stable/examples/notebooks/generated/statespace_sarimax_faq.html" target="_blank" rel="noopener noreferrer">statsmodels：SARIMAX 常见问题（含季节差分约定）</a></li><li><a href="https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc446.htm" target="_blank" rel="noopener noreferrer">NIST：ARIMA 模型识别</a></li></ol></section><nav class="bottom-nav" aria-label="章节导航"><a href="11.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="13.html">下一章 →</a></nav></article></main></div></body></html>
