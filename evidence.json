@@ -1,0 +1,100 @@
+{
+  "edition": "First pass | 2026-11-22",
+  "sources": {
+    "fpp": "https://otexts.com/fpp3/",
+    "nist": "https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc4.htm",
+    "stl": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.seasonal.STL.html",
+    "adf": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.adfuller.html",
+    "kpss": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.kpss.html",
+    "lb": "https://www.statsmodels.org/stable/generated/statsmodels.stats.diagnostic.acorr_ljungbox.html",
+    "ets": "https://www.statsmodels.org/stable/generated/statsmodels.tsa.exponential_smoothing.ets.ETSModel.html"
+  },
+  "chapters": [
+    {
+      "path": "chapters/01.html",
+      "claims": [
+        "Timestamp order can matter",
+        "Time-forward evaluation prevents leakage",
+        "Time stamps need not be globally unique"
+      ],
+      "figures": [
+        "01-observation.svg",
+        "01-split.svg"
+      ],
+      "references": [
+        "fpp",
+        "nist"
+      ],
+      "caveat": "Figures are synthetic, not observed performance"
+    },
+    {
+      "path": "chapters/02.html",
+      "claims": [
+        "Additive decomposition y=T+S+R",
+        "STL components depend on smoothing and period",
+        "Positive multiplicative data can be log-transformed"
+      ],
+      "figures": [
+        "02-components.svg",
+        "02-seasonality.svg"
+      ],
+      "references": [
+        "fpp",
+        "stl"
+      ],
+      "caveat": "Decomposition is not a causal identification"
+    },
+    {
+      "path": "chapters/03.html",
+      "claims": [
+        "Weak stationarity constrains first and second moments",
+        "ADF H0 is unit root",
+        "KPSS H0 is level or trend stationarity"
+      ],
+      "figures": [
+        "03-stationarity.svg",
+        "03-difference.svg"
+      ],
+      "references": [
+        "fpp",
+        "adf",
+        "kpss"
+      ],
+      "caveat": "Unit-root test decisions are sample-dependent"
+    },
+    {
+      "path": "chapters/04.html",
+      "claims": [
+        "Stationary AR1 ACF rho(k)=phi^k",
+        "AR1 PACF cuts off after lag 1",
+        "Ljung-Box non-rejection does not prove independence"
+      ],
+      "figures": [
+        "04-acf-pacf.svg",
+        "04-paths.svg"
+      ],
+      "references": [
+        "fpp",
+        "lb"
+      ],
+      "caveat": "Theory curves are not sample estimates"
+    },
+    {
+      "path": "chapters/05.html",
+      "claims": [
+        "SES level recursion",
+        "Finite-horizon exponential weights include initialization remainder",
+        "ETS first letter specifies error form"
+      ],
+      "figures": [
+        "05-weights.svg",
+        "05-alpha.svg"
+      ],
+      "references": [
+        "fpp",
+        "ets"
+      ],
+      "caveat": "No business benchmark or experimental gain claimed"
+    }
+  ]
+}

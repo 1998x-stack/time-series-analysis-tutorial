@@ -13,7 +13,7 @@
         "历史发展(1920sYule→1970sBox-Jenkins→2020s深度学习)",
         "应用场景总览"
       ],
-      "file": "01.html"
+      "file": "chapters/01.html"
     },
     {
       "num": "02",
@@ -24,7 +24,7 @@
         "STL分解",
         "X11/SEATS季节调整"
       ],
-      "file": "02.html"
+      "file": "chapters/02.html"
     },
     {
       "num": "03",
@@ -35,7 +35,7 @@
         "KPSS检验",
         "差分与Box-Cox变换"
       ],
-      "file": "03.html"
+      "file": "chapters/03.html"
     },
     {
       "num": "04",
@@ -46,7 +46,7 @@
         "白噪声与Ljung-Box检验",
         "AIC/BIC信息准则"
       ],
-      "file": "04.html"
+      "file": "chapters/04.html"
     },
     {
       "num": "05",
@@ -57,7 +57,7 @@
         "Holt-Winters季节性",
         "ETS框架"
       ],
-      "file": "05.html"
+      "file": "chapters/05.html"
     },
     {
       "num": "06",
@@ -68,7 +68,7 @@
         "Durbin-Watson检验",
         "Cochrane-Orcutt修正"
       ],
-      "file": "06.html"
+      "file": "chapters/06.html"
     },
     {
       "num": "07",
@@ -79,7 +79,7 @@
         "周期图构建与解读",
         "谱泄漏与窗函数"
       ],
-      "file": "07.html"
+      "file": "chapters/07.html"
     },
     {
       "num": "08",
@@ -90,7 +90,7 @@
         "特征根与平稳性条件",
         "PACF定阶"
       ],
-      "file": "08.html"
+      "file": "chapters/08.html"
     },
     {
       "num": "09",
@@ -101,7 +101,7 @@
         "MA与AR的对偶关系",
         "ACF定阶"
       ],
-      "file": "09.html"
+      "file": "chapters/09.html"
     },
     {
       "num": "10",
@@ -112,7 +112,7 @@
         "Box-Jenkins方法论",
         "模型简约性原则"
       ],
-      "file": "10.html"
+      "file": "chapters/10.html"
     },
     {
       "num": "11",
@@ -123,7 +123,7 @@
         "单位根",
         "auto.arima算法思想"
       ],
-      "file": "11.html"
+      "file": "chapters/11.html"
     },
     {
       "num": "12",
@@ -134,7 +134,7 @@
         "季节性ACF/PACF",
         "季节与非季节耦合"
       ],
-      "file": "12.html"
+      "file": "chapters/12.html"
     },
     {
       "num": "13",
@@ -145,7 +145,7 @@
         "参数显著性检验",
         "模型简化策略"
       ],
-      "file": "13.html"
+      "file": "chapters/13.html"
     },
     {
       "num": "14",
@@ -156,7 +156,7 @@
         "预测包络",
         "回测与前向验证"
       ],
-      "file": "14.html"
+      "file": "chapters/14.html"
     },
     {
       "num": "15",
@@ -167,7 +167,7 @@
         "EGARCH/TGARCH",
         "VaR风险价值"
       ],
-      "file": "15.html"
+      "file": "chapters/15.html"
     },
     {
       "num": "16",
@@ -178,7 +178,7 @@
         "脉冲响应函数",
         "方差分解"
       ],
-      "file": "16.html"
+      "file": "chapters/16.html"
     },
     {
       "num": "17",
@@ -189,7 +189,7 @@
         "Johansen检验",
         "VECM模型"
       ],
-      "file": "17.html"
+      "file": "chapters/17.html"
     },
     {
       "num": "18",
@@ -200,7 +200,7 @@
         "卡尔曼增益",
         "动态线性模型"
       ],
-      "file": "18.html"
+      "file": "chapters/18.html"
     },
     {
       "num": "19",
@@ -211,7 +211,7 @@
         "日历特征与傅里叶项",
         "缺失值与异常检测"
       ],
-      "file": "19.html"
+      "file": "chapters/19.html"
     },
     {
       "num": "20",
@@ -222,7 +222,7 @@
         "超参数调优",
         "数据泄漏陷阱"
       ],
-      "file": "20.html"
+      "file": "chapters/20.html"
     },
     {
       "num": "21",
@@ -233,7 +233,7 @@
         "Nixtla生态",
         "statsforecast/mlforecast"
       ],
-      "file": "21.html"
+      "file": "chapters/21.html"
     },
     {
       "num": "22",
@@ -244,7 +244,7 @@
         "清除与禁运",
         "模型集成"
       ],
-      "file": "22.html"
+      "file": "chapters/22.html"
     },
     {
       "num": "23",
@@ -255,7 +255,7 @@
         "梯度消失与裁剪",
         "Teacher Forcing"
       ],
-      "file": "23.html"
+      "file": "chapters/23.html"
     },
     {
       "num": "24",
@@ -266,7 +266,7 @@
         "WaveNet",
         "CNN-LSTM混合架构"
       ],
-      "file": "24.html"
+      "file": "chapters/24.html"
     },
     {
       "num": "25",
@@ -277,7 +277,7 @@
         "PatchTST",
         "TFT可解释注意力"
       ],
-      "file": "25.html"
+      "file": "chapters/25.html"
     },
     {
       "num": "26",
@@ -288,7 +288,7 @@
         "CSDI/TS-DiT扩散模型",
         "tokenization策略"
       ],
-      "file": "26.html"
+      "file": "chapters/26.html"
     },
     {
       "num": "27",
@@ -299,7 +299,7 @@
         "漂移检测",
         "InfluxDB/TimescaleDB"
       ],
-      "file": "27.html"
+      "file": "chapters/27.html"
     },
     {
       "num": "28",
@@ -310,7 +310,7 @@
         "全模型对比",
         "Top 10常见错误回顾"
       ],
-      "file": "28.html"
+      "file": "chapters/28.html"
     }
   ]
 }
