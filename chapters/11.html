@@ -1,213 +1,33 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第11章 差分与ARIMA</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html" class="active">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-        <h2>第11章 差分与ARIMA</h2>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="ARIMA 通过对序列做 d 次差分把非平稳水平化为平稳动态：理解差分算子、单位根、过度差分、定阶与多步预测。"><title>差分与 ARIMA · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内目录"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html" aria-current="page">11　差分与 ARIMA</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#why">01 · 为什么水平序列常不平稳</a><a href="#diff">02 · 差分算子与 ARIMA 定义</a><a href="#unitroot">03 · 单位根为何能被差分消除</a><a href="#overdiff">04 · 过度差分的代价</a><a href="#integrated">05 · ARIMA 与 ARMA 的积分关系</a><a href="#orderselect">06 · 先定 d，再比较 p 与 q</a><a href="#forecast">07 · 多步预测沿漂移延伸</a><a href="#interactive">08 · 改变差分次数观察自相关</a><a href="#experiment">09 · Python：拟合 ARIMA 并前向预测</a><a href="#wrap">10 · 与 SARIMA 的衔接</a></div><div class="separ"></div><a href="../index.html#catalog">全部课程 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 11 / 28 · STATISTICAL MODELLING</p><h1>差分与 ARIMA：把非平稳水平化为平稳动态</h1><p class="dek">ARIMA 通过对序列做 d 次差分把缓慢变化的水平化为平稳的差分动态，再用 ARMA 建模、再积分回水平。本章厘清差分算子、单位根、过度差分的代价、定阶顺序与多步预测的行为。</p><div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 边界与诊断</div><p>上一章的 ARMA 建立在平稳假设之上。现实中大量序列（股价、GDP、累计销量）却带有缓慢漂移的水平。Box–Jenkins 的解决方式不是抛弃 ARMA，而是先做<strong>差分</strong>：把“水平”换成“变化量”，再对变化量建模。<code>I</code>（Integrated）指的就是这一步可逆的求和/差分关系。</p><p>需要先纠正一个常见误解：<strong>ARIMA 不是“自动让任何序列变平稳”的黑箱</strong>。差分是一种有代价的操作，次数过多会引入不可逆的 MA 结构并放大方差；次数应由单位根证据、残差诊断与前向预测共同决定。</p></header>
+<section id="why" aria-labelledby="why-head"><h2 id="why-head">01 · 为什么水平序列常不平稳</h2><p>考虑随机游走 <code>yₜ=yₜ₋₁+εₜ</code>，其中 εₜ 是零均值、方差 σ² 的不相关创新。反复代入得 <code>yₜ=y₀+Σεⱼ</code>，于是 <code>Var(yₜ)=tσ²</code>——方差随步数线性增长。这意味着水平序列的均值虽不随时间漂移，但方差无界、自相关几乎不衰减，完全不满足 ARMA 所需的弱平稳条件。</p><figure><img src="../assets/svg/11-unit-root-acf.svg" width="960" height="380" loading="lazy" alt="左图随机游走水平序列的样本自相关在各滞后都接近 1，右图其一阶差分的样本自相关除零滞后外接近 0。"><figcaption>左：随机游走水平序列的自相关缓慢衰减、几乎不回落；右：做一阶差分后，除 ρ(0)=1 外各滞后接近 0。图形说明差分去除了“累积”带来的强相关。图为合成数据的教学示意，非真实序列。</figcaption></figure><p>这里要区分两类“不平稳”：<strong>确定性趋势</strong>（可看成回归中的时间函数）与<strong>随机趋势/单位根</strong>（冲击永久累积）。前者可以用去趋势或包含时间项处理，后者通常需要差分；把二者混为一谈会导致错误建模。</p></section>
+<section id="diff" aria-labelledby="diff-head"><h2 id="diff-head">02 · 差分算子与 ARIMA 定义</h2><p>滞后算子 B 满足 <code>Byₜ=yₜ₋₁</code>。一阶差分写作 <code>Δyₜ=yₜ−yₜ₋₁=(1−B)yₜ</code>，d 阶差分就是 <code>Δᵈyₜ=(1−B)ᵈyₜ</code>。ARIMA(p,d,q) 的做法是：先对 <code>yₜ</code> 做 d 次差分得到 <code>wₜ=Δᵈyₜ</code>，再假设 <code>wₜ</code> 服从 ARMA(p,q)。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="ARIMA 的算子形式"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="ARIMA 算子形式 Φ(B)(1−B)^d y_t = c + Θ(B) ε_t"><mrow><mi>Φ</mi><mo>(</mo><mi>B</mi><mo>)</mo><msup><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi>B</mi><mo>)</mo></mrow><mi>d</mi></msup><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>c</mi><mo>+</mo><mi>Θ</mi><mo>(</mo><mi>B</mi><mo>)</mo><msub><mi>ε</mi><mi>t</mi></msub></mrow></math><div class="formula-note">Φ(B)=1−ΣφⱼBʲ，Θ(B)=1+ΣθⱼBʲ（沿用第 10 章的正号 MA 约定）。c 是差分序列的常数项（漂移来源）。因果平稳要求 Φ 的根在单位圆外，可逆要求 Θ 的根也在单位圆外。</div></div><p>当 d=0 时 ARIMA 退化为 ARMA。多数经济序列 d 取 1 就够；d=2 已属少见，除非有证据表明序列是二阶积分 <code>I(2)</code>。<strong>d 是模型结构的一部分，不是需要搜索越大越好的超参数。</strong></p></section>
+<section id="unitroot" aria-labelledby="unitroot-head"><h2 id="unitroot-head">03 · 单位根为何能被差分消除</h2><p>对 AR(1) 过程 <code>yₜ=φyₜ₋₁+εₜ</code>，把它移到一边写作 <code>(1−φB)yₜ=εₜ</code>。平稳性取决于特征方程 <code>1−φB=0</code> 的根位置。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="AR(1) 的特征方程"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="AR(1) 特征方程 1−φB=0 给出根 B=1/φ"><mrow><mn>1</mn><mo>−</mo><mi>φ</mi><mi>B</mi><mo>=</mo><mn>0</mn><mo>⇒</mo><mi>B</mi><mo>=</mo><mfrac><mn>1</mn><mi>φ</mi></mfrac></mrow></math><div class="formula-note">当 |φ|&lt;1 时根的模大于 1，冲激响应 φʰ 衰减；当 φ=1 时根恰好落在单位圆上，即“单位根”，冲击永不衰减。</div></div><p>当 φ=1，序列就是随机游走。对它做一阶差分：<code>Δyₜ=yₜ−yₜ₋₁=εₜ</code>，正好得到白噪声。<strong>原因是差分算子 (1−B) 恰好抵消了 AR 多项式中的单位根因子 (1−B)</strong>，而非“差分抹掉了信息”。反之，若序列本来平稳（|φ|&lt;1），差分会在分母留下额外的 (1−B)，这就是下一节的过度差分。</p><p>要注意单位根检验的方向与局限：ADF 的原假设是“存在单位根”，KPSS 的原假设是“水平或趋势平稳”，两者互补但不能当作证明。检验力在样本短、含结构断点或近单位根时都会下降，结论必须结合图形、理论与前向预测。</p></section>
+<section id="overdiff" aria-labelledby="overdiff-head"><h2 id="overdiff-head">04 · 过度差分的代价</h2><p>对一个已经平稳的序列再做差分会发生两件事：新序列 <code>Δyₜ</code> 的 MA 多项式带上了因子 <code>(1−B)</code>，即出现单位根，于是不可逆；同时边际方差被放大。若 <code>yₜ</code> 是 ARMA(p,q)，则 <code>Δyₜ</code> 是 ARMA(p,q+1)，其中多了这个单位 MA 根。</p><figure><img src="../assets/svg/11-overdiff.svg" width="960" height="380" loading="lazy" alt="左图二阶差分序列的样本自相关在滞后 1 处约为负零点五，右图显示二阶差分的边际方差高于一阶差分。"><figcaption>过度差分的两个症状：二阶差分 <code>Δ²yₜ=(1−B)εₜ</code> 是 θ=−1 的 MA(1)，理论 ρ(1)=−0.5；同一合成序列上，Δ²y 的方差约为 Δy 的两倍。图为教学示意，样本统计量会随样本波动。</figcaption></figure><div class="table-scroll"><table><thead><tr><th scope="col">d</th><th scope="col">操作</th><th scope="col">常见场景</th><th scope="col">风险</th></tr></thead><tbody><tr><td>0</td><td>不差分</td><td>已平稳或仅含确定性趋势</td><td>忽略真实单位根会导致伪回归</td></tr><tr><td>1</td><td>一阶差分</td><td>随机游走类水平（价格、累计量）</td><td>若无单位根则引入 MA 单位根</td></tr><tr><td>2</td><td>二阶差分</td><td>仅当有 I(2) 证据</td><td>方差膨胀、区间被严重高估</td></tr></tbody></table></div><p>由于过度差分后模型仍可能拟合得不错，<strong>“样本内 AIC 更小”不足以证明 d=1 优于 d=0</strong>。可靠的判据是差分序列的单位根检验、残差诊断，以及在不同 d 下比较前向多步预测。</p></section>
+<section id="integrated" aria-labelledby="integrated-head"><h2 id="integrated-head">05 · ARIMA 与 ARMA 的积分关系</h2><p>差分与求和是一对逆操作，这正是名字中“Integrated”的含义。对同一个序列，差分把积分过程化为平稳过程；反过来，对 ARMA 序列累加会得到积分过程。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="ARIMA 与 ARMA 的对应关系"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="y 是 ARIMA(p,d,q) 当且仅当 d 阶差分为 ARMA(p,q)"><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>∼</mo><mi>ARIMA</mi><mo>(</mo><mi>p</mi><mo>,</mo><mi>d</mi><mo>,</mo><mi>q</mi><mo>)</mo><mspace width="1em"/><mo>⇔</mo><mspace width="1em"/><msup><mi>Δ</mi><mi>d</mi></msup><msub><mi>y</mi><mi>t</mi></msub><mo>∼</mo><mi>ARMA</mi><mo>(</mo><mi>p</mi><mo>,</mo><mi>q</mi><mo>)</mo></mrow></math><div class="formula-note">因此 d 是“积分阶数”：d=1 表示序列需一阶差分才平稳，d=2 表示需二阶。把它看作模型结构选择，而非可任意提高的自由度。</div></div><p>对预测而言，这个关系决定了反变换：先在差分序列上得到 <code>ŵₜ</code> 的条件预测，再累加回水平。累加会把点预测的不确定性逐层传播，所以水平预测区间会随步长变宽，详见第 07 节。</p></section>
+<section id="orderselect" aria-labelledby="orderselect-head"><h2 id="orderselect-head">06 · 先定 d，再比较 p 与 q</h2><p>一个可执行的顺序是：<strong>先定 d，再在固定 d 下比较 p、q</strong>。定 d 时结合单位根检验与图形：若 ADF 不拒绝单位根且差分后 ACF 快速衰减，倾向于 d=1；若差分序列仍表现出近单位根特征才考虑 d=2。R 的 <code>auto.arima</code> 与 Python 的 <code>pmdarima</code> 自动搜索本质上也是这个思路，但自动结果只是候选起点。</p><div class="table-scroll"><table><thead><tr><th scope="col">阶段</th><th scope="col">主要依据</th><th scope="col">不能代替什么</th></tr></thead><tbody><tr><td>定 d</td><td>ADF（H₀：单位根）与 KPSS（H₀：平稳）互补，加上差分后的 ACF 形状</td><td>不能仅凭“趋势看着上升”就选 d</td></tr><tr><td>定 p、q</td><td>固定 d 后比较 AICc / BIC；差分序列的理论 ACF/PACF 形状只作线索</td><td>有限样本相关图有噪声，不能机械套“前几阶显著就用几阶”</td></tr><tr><td>确认</td><td>创新残差诊断 + 真正未来窗口的前向回测</td><td>最小 AICc 不代表预测最优</td></tr></tbody></table></div><p>比较模型前必须固定训练区间、差分与均值设定、似然约定及参数计数。AICc 在小样本下比 AIC 更稳妥，但本质上仍是拟合优度与复杂度的一步权衡，而不是对预测能力的直接度量。</p></section>
+<section id="forecast" aria-labelledby="forecast-head"><h2 id="forecast-head">07 · 多步预测沿漂移延伸</h2><p>若差分序列带常数项 c，它能解释为水平中的线性漂移。在时点 T 已知历史时，水平预测由三部分叠加：最后一次观测水平、随步长线性增长的漂移、以及随时间按 AR 系数幂衰减的平稳修正。因此水平点预测最终不再趋向一个常数均值，而是沿一条斜线延伸。</p><figure><img src="../assets/svg/11-arima-forecast.svg" width="960" height="380" loading="lazy" alt="历史序列后接一段沿漂移线延伸的点预测，预测区间随步长按根号变宽。"><figcaption>含漂移的 ARIMA 水平预测：点预测（青）沿确定性漂移线（橙虚线）延伸，平稳修正逐渐消失；预测区间（浅带）随步长按约 <code>√h</code> 变宽。图为按解析形式绘制的教学示意，非软件拟合输出。</figcaption></figure><p>要与差分序列的预测区分开：<strong>差分序列本身（去掉漂移后）的预测仍会趋向常数均值，但积分回水平后体现出漂移</strong>。同时也别把“预测区间变宽”误解为“模型变差”，这是积分过程固有的不确定性累积。</p></section>
+<section id="interactive" aria-labelledby="interactive-head"><h2 id="interactive-head">08 · 改变差分次数观察自相关</h2><p>拖动滑块选择差分次数 d，看同一随机游走在不同 d 下的理论自相关形状。d=1 得到近似白噪声；d=2 则引入 θ=−1 的 MA(1)，在滞后 1 处出现约 −0.5 的负相关。</p><div class="concept-lab" data-lab="diff"><label for="diff-param">设置差分次数 d = <output data-lab-output for="diff-param">1</output></label><input id="diff-param" data-lab-input type="range" min="0" max="2" step="1" value="1"><div class="lab-explainer" data-lab-description aria-live="polite">d=1：Δy_t=ε_t 是白噪声，除 ρ(0)=1 外自相关理论值为 0。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">本图表示已知理论参数下的解析结果，不是从真实数据估计出来的。</p></div></section>
+<section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">09 · Python：拟合 ARIMA 并前向预测</h2><p>下面生成一个含漂移的随机游走（一阶差分后应为白噪声），验证 ADF 结果，再用 ARIMA(1,1,1) 拟合前 420 期并对后 60 期做一次性多步预测。只依赖 numpy 与 statsmodels。</p><pre tabindex="0"><code>import numpy as np
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.stats.diagnostic import acorr_ljungbox
 
-        <p>大家好！前几章我们一直在讲"平稳序列"的建模。但现实中的数据有几个是平稳的？股票价格一路飙升，GDP 逐年增长，气温随着季节起伏——这些序列几乎都不平稳。那难道这些数据就不能用 ARMA 模型了吗？</p>
+rng = np.random.default_rng(11)
+n = 480
+y = np.cumsum(rng.normal(0.05, 1.0, n))  # 带漂移的随机游走
 
-        <p>答案是否定的。Box 和 Jenkins 的厉害之处在于他们发现：很多非平稳序列经过一个简单的操作——差分——就能变成平稳的。这个把 ARMA 扩展到非平稳领域的产物，就是 ARIMA 模型（Autoregressive Integrated Moving Average） 。"I"（Integrated）代表的就是差分这一步。</p>
+print(&quot;水平 ADF p=&quot;, adfuller(y, autolag=&quot;AIC&quot;)[1])       # 期望不拒绝单位根
+print(&quot;差分 ADF p=&quot;, adfuller(np.diff(y), autolag=&quot;AIC&quot;)[1])  # 期望拒绝
 
-        <h3>11.1 差分：几何直觉</h3>
+train, test = y[:-60], y[-60:]
+fit = ARIMA(train, order=(1, 1, 1), trend=&quot;t&quot;,
+            enforce_stationarity=True,
+            enforce_invertibility=True).fit()
+forecast = fit.forecast(steps=len(test))
+print(&quot;样本外 MAE:&quot;, np.mean(np.abs(forecast - test)))
+print(acorr_ljungbox(fit.resid, lags=[12], model_df=2))
 
-        <p>差分的概念极其简单：</p>
-
-        <p><strong>一阶差分：</strong>ΔY_t = Y_t - Y_{t-1}</p>
-
-        <p>就是把相邻两个点的差值作为新的序列。它衡量的是"变化量"而不是"水平值"。</p>
-
-        <p>为什么差分能让序列变平稳？想象一下你在开车：</p>
-        <ul>
-            <li>Y_t 是行驶的总里程——随着时间的推移，这个数字只会增加，显然非平稳</li>
-            <li>ΔY_t 是每小时的行驶距离（即时速）——只要你的驾驶习惯相对稳定，这个序列就是平稳的（没有长期趋势，围绕某个均值波动）</li>
-        </ul>
-
-        <p>大多数经济金融序列都类似：价格水平非平稳，但价格的变化率（收益率）通常是平稳的。GDP 水平非平稳，但 GDP 增长率是平稳的。</p>
-
-        <div class="highlight">
-            <strong>核心思想：</strong>ARIMA 做的不是对"数据本身"建模，而是对"数据的变化"建模。差分就像一把手术刀，切掉趋势，留下平稳的核心信息。
-        </div>
-
-        <h3>11.2 ARIMA(p,d,q) 的定义</h3>
-
-        <p>ARIMA(p,d,q) 模型的定义分三步：</p>
-
-        <ol>
-            <li>对 Y_t 做 d 次差分，得到平稳序列 W_t = Δ^d Y_t</li>
-            <li>对 W_t 拟合 ARMA(p,q) 模型</li>
-            <li>将差分操作"反转"得到对原始 Y_t 的预测</li>
-        </ol>
-
-        <p>用滞后算子表达：</p>
-
-        <p><strong>Φ(L) (1-L)^d Y_t = c + Θ(L) ε_t</strong></p>
-
-        <p>大多数情况下 d=1 就足够了。对经济数据，d 几乎不会超过 2。</p>
-
-        <table>
-            <tr>
-                <th>d 值</th>
-                <th>操作</th>
-                <th>适用场景</th>
-            </tr>
-            <tr>
-                <td>d=0</td>
-                <td>无差分</td>
-                <td>原始数据已经平稳</td>
-            </tr>
-            <tr>
-                <td>d=1</td>
-                <td>一阶差分</td>
-                <td>线性趋势（股价、GDP、销量）</td>
-            </tr>
-            <tr>
-                <td>d=2</td>
-                <td>二阶差分</td>
-                <td>曲率趋势（加速度变化），极少使用</td>
-            </tr>
-        </table>
-
-        <h3>11.3 单位根：为什么差分有效</h3>
-
-        <p>要理解差分为什么有效，需要回到第8章的特征根概念。</p>
-
-        <p>一个 AR(1) 过程 Y_t = φY_{t-1} + ε_t，当 φ=1 时就是随机游走（Random Walk）。这个过程的特征方程 1 - φL = 0 的根是 L = 1/φ = 1，正好在单位圆上。这就是"单位根"（Unit Root）这个名称的由来。</p>
-
-        <p>当 φ=1 时，序列的方差随时间线性增长，任何冲击都不会衰减——今天的价格是昨天的价格加上一个随机增量，昨天的价格又是前天的价格加上随机增量……这种"累积"效应正是非平稳的来源。</p>
-
-        <p>对随机游走做一阶差分：ΔY_t = Y_t - Y_{t-1} = ε_t。结果完美地变成了白噪声！这就是差分的神奇之处——把单位根从特征方程中移除。</p>
-
-        <div class="tip">
-            <strong>单位根检验：</strong>在决定 d 值之前，应该先做单位根检验。最常用的是 ADF 检验（Augmented Dickey-Fuller test）。原假设是"序列存在单位根"。如果 p 值小于 0.05，拒绝原假设，认为数据平稳。否则需要差分。但要注意：ADF 检验的检验力有限（尤其是样本量小的时候），不要盲目依赖。
-        </div>
-
-        <h3>11.4 过度差分：一个常见的悲剧</h3>
-
-        <p>差分不是越多越好。过度差分（Overdifferencing）是一个初学者最容易犯的错误之一。</p>
-
-        <p>假设一个序列已经是平稳的（d=0 足够），但你硬是做了差分（d=1）。这会产生什么后果？原来序列 Y_t 是一个平稳 ARMA 过程，差分后 W_t = Y_t - Y_{t-1} 的方差会变大，而且会在移动平均部分引入一个不可逆的 MA 成分。</p>
-
-        <p>具体来说，如果 Y_t 是 ARMA(p,q)，那么 ΔY_t 是 ARMA(p, q+1)，但 MA 部分会有一个单位根——这就是过度差分的信号。在实际中，过度差分会让你的模型参数估计不稳定，预测区间异常宽大。</p>
-
-        <div class="warning">
-            <strong>踩坑故事：</strong>一位量化分析师在处理一个宏观数据集时，看到序列有明显的上升趋势，想都没想就做了两次差分（d=2）。结果模型的 AIC 确实比 d=1 时更好——因为过度差分后 MA 部分吸收了一部分信号，看似拟合得更好。但样本外预测时，模型完全崩溃了：预测值上下剧烈震荡，区间宽度是 d=1 时模型的 3 倍。事后检查发现，其实 d=1 就足够了，过度差分把数据的协方差结构扭曲了。教训是：d 不要超过 2，而且一定要对比不同 d 值的预测效果，不能只看样本内拟合。
-        </div>
-
-        <h3>11.5 ARIMA 和 ARMA 的关系</h3>
-
-        <p>一个有趣的视角：ARIMA 其实可以看作 ARMA 对"累积数据"的建模。反过来，如果你对 ARIMA 的原始序列求差分，就变成了 ARMA。</p>
-
-        <p>用数学表达：</p>
-
-        <ul>
-            <li>如果 Y_t ~ ARIMA(p,d,q)，那么 Δ^d Y_t ~ ARMA(p,q)</li>
-            <li>如果 Y_t ~ ARMA(p,q)，那么 ΣY_t（累计和） ~ ARIMA(p,1,q)</li>
-        </ul>
-
-        <p>所以 ARIMA 和 ARMA 之间就差了一个求和/差分操作。这也是为什么"ARIMA"中的"I"代表"Integrated"（积分）——你可以把差分理解为"微分"，把逆向操作（从差分恢复到原始值）理解为"积分"。</p>
-
-        <h3>11.6 auto.arima：自动化的艺术</h3>
-
-        <p>手动选择 p、d、q 可能很耗时。在 R 语言中有一个著名的函数 auto.arima（来自 forecast 包），它会自动搜索最优参数。Python 的 pmdarima 库提供了类似的功能。</p>
-
-        <p>auto.arima 的基本策略是：</p>
-
-        <ol>
-            <li>先用单位根检验确定 d（如 KPSS 检验 + ADF 检验的联合决策）</li>
-            <li>在 d 固定的情况下，搜索 p 和 q 的组合（通常限制 p ≤ 5, q ≤ 5）</li>
-            <li>使用 AICc（小样本修正的 AIC）作为选择标准</li>
-            <li>考虑是否包含常数项（c）</li>
-        </ol>
-
-        <pre><code>import numpy as np
-import pmdarima as pm
-import matplotlib.pyplot as plt
-
-# 生成一个需要差分的非平稳数据
-np.random.seed(42)
-n = 200
-Y = np.cumsum(np.random.normal(0.1, 1, n))  # 随机游走带漂移
-
-# 用 auto.arima 自动选择参数
-model = pm.auto_arima(
-    Y,
-    start_p=0, max_p=5,
-    start_q=0, max_q=5,
-    start_d=0, max_d=2,
-    seasonal=False,
-    trace=True,          # 打印搜索过程
-    error_action='ignore',
-    suppress_warnings=True,
-    stepwise=True,       # 使用逐步搜索（更快）
-    information_criterion='aic'
-)
-
-print(model.summary())
-print(f"自动选择的阶数: ARIMA{model.order}")
-
-# 拟合后的残差诊断
-residuals = model.resid()
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-ax1.plot(residuals)
-ax1.set_title('残差序列')
-from statsmodels.graphics.tsaplots import plot_acf
-plot_acf(residuals, lags=20, ax=ax2)
-plt.show()</code></pre>
-
-        <div class="highlight">
-            <strong>注意：</strong>auto.arima 是个好工具，但它不是万能的。它会选择统计上"最优"的模型，但统计最优不等于业务最优。在实际项目中，建议把 auto.arima 的结果作为起点，再结合业务理解和残差诊断进行调整。机器学习中的"没有免费午餐定理"同样适用于这里。
-        </div>
-
-        <p>ARIMA 模型把 ARMA 的应用范围从平稳数据扩展到了非平稳数据，这是时间序列分析史上的一大飞跃。但 ARIMA 有一个盲区——它只能处理趋势非平稳，面对季节性非平稳就力不从心了。比如说空调销量数据，既有一年比一年增长的趋势（需要 d=1），又有冬夏周期波动的季节性（需要额外的季节性处理）。下一章我们将引入季节性 ARIMA（SARIMA），专门解决这个问题。</p>
-
-        <div class="footer-nav">
-            <a href="10.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="12.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+assert len(forecast) == len(test) == 60
+assert adfuller(np.diff(train), autolag=&quot;AIC&quot;)[1] &lt; 0.05</code></pre><p><code>trend=&quot;t&quot;</code> 给水平加一个线性趋势，效果等价于在差分序列里包含常数项（漂移）。<strong>断言只检查结构性质（差分后拒绝单位根、预测长度一致），不声称 ARIMA 一定优于朴素基线</strong>；真实项目中必须加上与随机游走基准的对比。</p></section>
+<section id="wrap" aria-labelledby="wrap-head"><h2 id="wrap-head">10 · 与 SARIMA 的衔接</h2><p>ARIMA 只能处理非季节性的差分结构。当序列同时含季节周期（如空调销量的冬夏循环）与非季节趋势时，简单的非季节 ARIMA 要么欠拟合、要么需要很高的阶数才能拟合季节形状。下一章的 SARIMA 把差分从「一次」扩展到「季节性间隔的一次」，用 <code>(1−Bˢ)</code> 同时处理两类结构。</p><div class="thought"><strong>一个完整的 ARIMA 报告应该回答：</strong>数据频率与单位是什么？d 的依据是哪些检验与图形？差分序列的创新残差是否接近所需假设？样本外多步预测是否至少不劣于随机游走基准？所有结论是否只来自训练集？</div></section>
+<section id="references"><h2>进一步阅读与技术核对</h2><p>引用指向定义、检验与实现接口的官方资料。文中的图与模拟均为教学示意，并非经验表现的证明。</p><ol class="refs"><li><a href="https://otexts.com/fpp3/arima.html" target="_blank" rel="noopener noreferrer">FPP3：非季节 ARIMA 模型与差分</a></li><li><a href="https://otexts.com/fpp3/stationarity.html" target="_blank" rel="noopener noreferrer">FPP3：平稳性与差分</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html" target="_blank" rel="noopener noreferrer">statsmodels：ARIMA 模型 API</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.adfuller.html" target="_blank" rel="noopener noreferrer">statsmodels：ADF 单位根检验</a></li><li><a href="https://www.itl.nist.gov/div898/handbook/pmc/section4/pmc446.htm" target="_blank" rel="noopener noreferrer">NIST：ARIMA 模型识别</a></li></ol></section><nav class="bottom-nav" aria-label="章节导航"><a href="10.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="12.html">下一章 →</a></nav></article></main></div></body></html>

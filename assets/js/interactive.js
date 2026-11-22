@@ -8,6 +8,12 @@ function data(kind,v){
  if(kind==='phi')return {values:Array.from({length:12},(_,k)=>v**k),text:'脉冲响应 ψ₀=1，ψ₁='+v.toFixed(3)+'，ψ₂='+(v*v).toFixed(4)};
  if(kind==='theta')return {values:[v/(1+v*v),0,0,0,0,0,0,0,0],text:'理论 ρ₁='+(v/(1+v*v)).toFixed(4)+'；'+(Math.abs(v)<1?'可逆（|θ|<1）':Math.abs(v)<=1.00001?'临界边界 |θ|=1，非严格可逆':'不可逆（|θ|>1）')};
  if(kind==='arma')return {values:Array.from({length:12},(_,k)=>k===0?1:(v+.35)*v**(k-1)),text:'θ=0.35，ψ₁='+(v+.35).toFixed(4)+'，ψ₂='+((v+.35)*v).toFixed(4)};
+ if(kind==='diff'){
+  const d=Math.round(v);
+  if(d===0)return {values:Array.from({length:9},()=>0.99),text:'d=0：随机游走水平的理论自相关在各滞后都接近 1，几乎不衰减，需要差分。'};
+  if(d===1)return {values:[1,0,0,0,0,0,0,0,0],text:'d=1：Δy_t=ε_t 是白噪声，除 ρ(0)=1 外自相关理论值为 0。'};
+  return {values:[1,-0.5,0,0,0,0,0,0,0],text:'d=2：Δ²y_t=(1−B)ε_t 是 θ=−1 的 MA(1)，ρ(1)=−0.5，这是过度差分的典型信号。'};
+ }
  return {values:[],text:''};
 }
 for(const root of labs){
@@ -21,7 +27,7 @@ for(const root of labs){
     const v=Number(slider.value);
     if(!Number.isFinite(v))return;
     const result=data(kind,v);
-    const display=kind==='period'?v.toFixed(0):v.toFixed(2);
+    const display=kind==='period'||kind==='diff'?String(Math.round(v)):v.toFixed(2);
     output.value=display;output.textContent=display;
     note.textContent=result.text;
     chart.replaceChildren();
