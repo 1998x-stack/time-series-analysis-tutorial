@@ -19,6 +19,12 @@ function data(kind,v){
   const values=Array.from({length:24},(_,k)=>k===0?1:(k%s===0?0.62:0));
   return {values,text:'季节周期 s='+s+'：自相关在滞后 '+s+'、'+(2*s)+'（周期的整数倍）出现峰，这种远程依赖是普通 ARMA 直接拟合困难的。'};
  }
+ if(kind==='garch'){
+  const a=0.10, p=a+v;
+  const values=Array.from({length:12},(_,k)=>a*Math.pow(p,k));
+  const half=p>0&&p<1?Math.log(0.5)/Math.log(p):Infinity;
+  return {values,text:'α=0.10，β='+v.toFixed(2)+'，α+β='+p.toFixed(2)+'；冲击按 (α+β) 的幂衰减'+(p<1?'，半衰期约 '+half.toFixed(1)+' 期。':'（≥1，方差过程非平稳）。')};
+ }
  return {values:[],text:''};
 }
 for(const root of labs){

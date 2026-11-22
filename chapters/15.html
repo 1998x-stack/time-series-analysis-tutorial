@@ -1,212 +1,30 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第15章 波动率建模(ARCH/GARCH)</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html" class="active">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="波动率建模：用 ARCH 与 GARCH 刻画条件方差随时间的聚集与持久性，理解平稳条件、杠杆效应、波动率预测与 VaR 的局限。"><title>波动率建模：ARCH 与 GARCH · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内目录"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a><a href="14.html">14　预测与评估</a><a href="15.html" aria-current="page">15　波动率建模</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#stylized">01 · 收益率的典型事实</a><a href="#arch">02 · ARCH：条件方差依赖残差平方</a><a href="#garch">03 · GARCH：一个滞后方差项换无限记忆</a><a href="#stationarity">04 · 平稳条件与长期方差</a><a href="#asym">05 · 杠杆效应与非对称模型</a><a href="#var">06 · 波动率预测与 VaR 的局限</a><a href="#interactive">07 · 交互：α+β 与冲击持久性</a><a href="#experiment">08 · Python：模拟 GARCH(1,1)</a><a href="#wrap">09 · 与多元序列的衔接</a></div><div class="separ"></div><a href="../index.html#catalog">全部课程 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 15 / 28 · VOLATILITY</p><h1>波动率建模：ARCH 与 GARCH</h1><p class="dek">收益率本身难以预测，但它<strong>波动的幅度</strong>却可预测。本章把条件方差当作建模对象，讲清波动率聚集、ARCH/GARCH 的方程、平稳条件、杠杆效应，以及波动率预测与 VaR 的边界。</p><div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 边界与诊断</div><p>第 14 章的预测区间建立在“创新方差 σ² 恒定”之上。但金融收益率的方差会成簇变化：大波动后跟随大波动。此时固定方差假设失效，<strong>条件方差本身成为需要建模的对象</strong>。</p><p>先纠正一个常见误解：<strong>GARCH 预测的是波动率，不是方向</strong>。它给出的是未来收益的条件方差（风险），而不是涨跌方向；把 GARCH 当成“预测涨跌”的工具是误用。</p></header>
+<section id="stylized" aria-labelledby="stylized-head"><h2 id="stylized-head">01 · 收益率的典型事实</h2><p>金融收益率有三个常被提到的特征：<strong>厚尾</strong>（极端值比正态更常见）、<strong>波动率聚集</strong>（大波动扎堆）、<strong>杠杆效应</strong>（负收益往往比同等正收益带来更大波动）。其中波动率聚集最容易检验：<strong>收益率本身几乎不相关，但收益率平方的自相关缓慢衰减</strong>。</p><figure><img src="../assets/svg/15-clustering.svg" width="960" height="380" loading="lazy" alt="左图 GARCH 模拟收益率呈现大波动成簇，右图收益率平方的自相关比收益率本身衰减慢得多。"><figcaption>左：GARCH(1,1) 模拟收益率，震荡期与平静期交替出现。右：青为 <code>rₜ</code> 的样本自相关（近似为零），橙为 <code>rₜ²</code> 的样本自相关（缓慢衰减）——聚集性藏在<strong>平方</strong>的相关结构里。图为固定种子的合成序列，非真实市场数据。</figcaption></figure><p>“近似不相关”应理解为<strong>线性不相关</strong>：可以没有线性自相关，却存在平方意义上的依赖。这也是为什么只看 <code>rₜ</code> 的 ACF 会漏掉波动率聚集。</p></section>
+<section id="arch" aria-labelledby="arch-head"><h2 id="arch-head">02 · ARCH：条件方差依赖残差平方</h2><p>ARCH（Engle, 1982）把条件方差写成过去残差平方的函数：昨天的冲击越大，今天的条件方差越高。收益方程写成 <code>rₜ=μ+εₜ</code>，其中 <code>εₜ=σₜ zₜ</code>，zₜ 为零均值单位方差的白噪声。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="ARCH(q) 的条件方差方程"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="ARCH(q)：σ²_t = ω + Σ α_i ε²_{t−i}"><mrow><msubsup><mi>σ</mi><mi>t</mi><mn>2</mn></msubsup><mo>=</mo><mi>ω</mi><mo>+</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>q</mi></munderover><msub><mi>α</mi><mi>i</mi></msub><msubsup><mi>ε</mi><mrow><mi>t</mi><mo>−</mo><mi>i</mi></mrow><mn>2</mn></msubsup></mrow></math><div class="formula-note">需要 ω&gt;0、α_i≥0 以保证条件方差为正。注意 σ²_t 是<b>条件</b>方差（依赖当前信息），不等于无条件方差。</div></div><p>ARCH 的痛点是要刻画长期记忆就需要很大的 q，参数多且估计不稳。GARCH 用“方差自身的滞后项”来缓解这一问题。</p></section>
+<section id="garch" aria-labelledby="garch-head"><h2 id="garch-head">03 · GARCH：一个滞后方差项换无限记忆</h2><p>Bollerslev（1986）在方差方程里加入条件方差自身的滞后项 <code>σ²_{t−1}</code>，仅用三个参数就能表达无限长的记忆。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="GARCH(1,1) 的条件方差方程"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="GARCH(1,1)：σ²_t = ω + α ε²_{t−1} + β σ²_{t−1}"><mrow><msubsup><mi>σ</mi><mi>t</mi><mn>2</mn></msubsup><mo>=</mo><mi>ω</mi><mo>+</mo><mi>α</mi><msubsup><mi>ε</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow><mn>2</mn></msubsup><mo>+</mo><mi>β</mi><msubsup><mi>σ</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow><mn>2</mn></msubsup></mrow></math><div class="formula-note">α 度量新冲击对波动率的影响（ARCH 项），β 度量波动的持久性（GARCH 项）。把方差方程反复代入，可得 σ²_t 是过去所有 ε² 的加权和，权重按 (α+β) 的幂衰减。</div></div><figure><img src="../assets/svg/15-memory.svg" width="960" height="380" loading="lazy" alt="方差对冲击的响应曲线：α+β 越接近 1，衰减越慢。"><figcaption>条件方差对平方冲击的响应按 <code>(α+β)</code> 的幂衰减：α+β=0.95 的曲线衰减很慢（冲击持久），α+β=0.70 的曲线几期就基本消退。图为按解析响应绘制的教学示意。</figcaption></figure><p>实务中 GARCH(1,1) 常被当作默认起点，因为它在很多金融序列上已能抓住主要动态。但<strong>“α+β 接近 1”不应被当成可自动验证的事实</strong>：它需要在具体样本上用极大似然估计并检查标准误。</p></section>
+<section id="stationarity" aria-labelledby="stationarity-head"><h2 id="stationarity-head">04 · 平稳条件与长期方差</h2><p>要让过程有意义的无条件方差、从而存在长期均值可回归，需要方差方程稳定。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="GARCH(1,1) 的无条件方差"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="无条件方差 σ² = ω / (1 − α − β)，需 α+β<1"><mrow><msup><mi>σ</mi><mn>2</mn></msup><mo>=</mo><mfrac><mi>ω</mi><mrow><mn>1</mn><mo>−</mo><mi>α</mi><mo>−</mo><mi>β</mi></mrow></mfrac><mspace width="1.2em"/><mo>(</mo><mi>α</mi><mo>+</mo><mi>β</mi><mo>&lt;</mo><mn>1</mn><mo>)</mo></mrow></math><div class="formula-note">α+β&lt;1 时波动率均值回复到 σ²；α+β→1 时均值回复极慢（接近 IGARCH）；α+β≥1 时无条件方差不存在，方差方程非平稳。</div></div><p>这与第 03 章的平稳性概念衔接：这里要求平稳的是<strong>方差过程</strong>，而不是收益率水平。即便收益率近似白噪声，其方差仍可有一个稳定的长期水平供波动率向其回复。</p></section>
+<section id="asym" aria-labelledby="asym-head"><h2 id="asym-head">05 · 杠杆效应与非对称模型</h2><p>标准 GARCH 的方差方程对 ε² 对称，但市场常表现为<strong>负冲击比同等正冲击抬升更多波动</strong>。为了刻画这种不对称，研究者提出多种扩展。</p><div class="table-scroll"><table><thead><tr><th scope="col">模型</th><th scope="col">关键改动</th><th scope="col">注意</th></tr></thead><tbody><tr><td>EGARCH</td><td>对 log σ²_t 建模，允许符号项</td><td>无需强制参数非负；参数含义基于对数尺度</td></tr><tr><td>GJR-GARCH</td><td>负残差时加一个额外项 γ ε²_{t−1}</td><td>γ&gt;0 表示负冲击影响更大</td></tr><tr><td>APARCH</td><td>对方差引入幂变换与不对称</td><td>更灵活，但也更易过拟合</td></tr></tbody></table></div><figure><img src="../assets/svg/15-leverage.svg" width="960" height="380" loading="lazy" alt="消息影响曲线：对称 GARCH 左右对称，GJR 在负冲击一侧抬升更高。"><figcaption>消息影响曲线：对称 GARCH（青）关于冲击符号左右对称；GJR（橙）在负冲击一侧抬升更高，把“坏消息影响更大”写进了方程。图为按固定参数绘制的教学示意。</figcaption></figure><p>是否真的存在杠杆效应应用数据说话，并且要注意它与厚尾可能混淆：<strong>残差平方的 ACF 不能用来区分“不对称”与“单纯厚尾”</strong>，需要用带不对称项的模型比较与残差诊断。</p></section>
+<section id="var" aria-labelledby="var-head"><h2 id="var-head">06 · 波动率预测与 VaR 的局限</h2><p>波动率预测最直接的应用是风险管理。<strong>Value-at-Risk（VaR）</strong>是给定置信水平下持有期的分位数损失：在正态假设下，它等于均值减去分位数乘以当期条件标准差。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="基于条件方差的 VaR"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="VaR_p = −(μ + σ_t q_p)，q_p 为标准分布 p 分位数"><mrow><msub><mi>VaR</mi><mi>p</mi></msub><mo>=</mo><mo>−</mo><mo>(</mo><mi>μ</mi><mo>+</mo><msub><mi>σ</mi><mi>t</mi></msub><msub><mi>q</mi><mi>p</mi></msub><mo>)</mo></mrow></math><div class="formula-note">q_p 是标准分布 p 分位数（正态下 p=0.05 时 q=−1.645）。VaR 通过条件方差随之逐日变化，这是它相对静态估计的主要优势。</div></div><p>必须明确 VaR 的三个局限：<strong>（1）依赖分布假设</strong>——若真实厚尾，正态 VaR 会系统性低估尾部损失；<strong>（2）VaR 不是一致风险度量</strong>，它不满足次可加性，组合分散不一定降低 VaR；<strong>（3）它只给一个分位点</strong>，不描述超过该点后的损失大小（需配合期望损失 ES）。因此应回测命中率并结合压力测试，而不能把 VaR 当作保证。</p></section>
+<section id="interactive" aria-labelledby="interactive-head"><h2 id="interactive-head">07 · 交互：α+β 与冲击持久性</h2><p>固定 α=0.10，拖动滑块改变 β，看方差对冲击的响应序列。α+β 越接近 1，响应衰减越慢；当 α+β≥1 时，响应不再回落，方差方程失去平稳性。</p><div class="concept-lab" data-lab="garch"><label for="garch-param">设置 GARCH 参数 β（α 固定为 0.10） = <output data-lab-output for="garch-param">0.75</output></label><input id="garch-param" data-lab-input type="range" min="0.05" max="0.95" step="0.05" value="0.75"><div class="lab-explainer" data-lab-description aria-live="polite">α=0.10，β=0.75，α+β=0.85；冲击以 (α+β) 的幂衰减。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">本图表示已知参数下的理论响应，不是从真实数据估计出来的。</p></div></section>
+<section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">08 · Python：模拟 GARCH(1,1)</h2><p>下面用 numpy 生成 GARCH(1,1) 序列（统一取无条件方差为 1），再用 Ljung–Box 检验对比收益与其平方的自相关。只依赖 numpy 与 statsmodels。</p><pre tabindex="0"><code>import numpy as np
+from statsmodels.stats.diagnostic import acorr_ljungbox
 
-        <h2>第15章 波动率建模：ARCH与GARCH</h2>
+rng = np.random.default_rng(15)
+n = 4000
+omega, alpha, beta = 1 - 0.2 - 0.75, 0.2, 0.75   # 无条件方差 = 1
+z = rng.standard_normal(n)
+sigma2 = np.zeros(n)
+r = np.zeros(n)
+sigma2[0] = omega / (1 - alpha - beta)
+for t in range(1, n):
+    sigma2[t] = omega + alpha * r[t-1]**2 + beta * sigma2[t-1]
+    r[t] = np.sqrt(sigma2[t]) * z[t]
 
-        <p>想象一下你是一名量化交易员，每天盯着股票收益率曲线。大部分时间收益率在 ±1% 之间温和波动，但突然某天波动骤增到 ±5%，然后接下来几天持续剧烈震荡，之后又慢慢归于平静。这种"大波动扎堆出现"的现象，就是金融时间序列最核心的特征之一——<strong>波动率聚集（Volatility Clustering）</strong>。</p>
+print(&quot;r   的 LB p:&quot;, acorr_ljungbox(r,    lags=[10]).iloc[0, 1])
+print(&quot;r² 的 LB p:&quot;, acorr_ljungbox(r**2, lags=[10]).iloc[0, 1])
+print(&quot;持续参数 alpha+beta =&quot;, alpha + beta)
 
-        <p>传统 ARIMA 模型假设方差恒定，这在金融数据面前完全行不通。波动率本身就是一个需要建模的对象。本章就来讲解如何用 ARCH 和 GARCH 模型捕捉金融时间序列的"脾气"。</p>
-
-        <div class="highlight">
-            <strong>本章核心目标：</strong>掌握波动率建模的基本框架，能够用 GARCH 类模型量化风险，并计算 Value-at-Risk (VaR)。
-        </div>
-
-        <h3>15.1 金融时间序列的"怪脾气"</h3>
-
-        <p>为什么金融数据不能用普通时序模型处理？三个关键特征决定了它的特殊性：</p>
-
-        <table>
-            <tr><th>特征</th><th>含义</th><th>直观表现</th></tr>
-            <tr><td>厚尾分布 (Fat Tails)</td><td>极端值出现概率远高于正态分布</td><td>"黑天鹅"事件频发</td></tr>
-            <tr><td>波动率聚集</td><td>大波动后跟大波动，小波动后跟小波动</td><td>震荡期与平静期交替出现</td></tr>
-            <tr><td>杠杆效应 (Leverage Effect)</td><td>负收益对波动率的提升大于正收益</td><td>暴跌后市场格外脆弱</td></tr>
-        </table>
-
-        <p>GARCH 类模型正是为处理这些特征而设计的。它不直接预测价格涨跌，而是预测<strong>波动率本身</strong>——也就是收益率的条件方差。</p>
-
-        <h3>15.2 从 ARCH 到 GARCH</h3>
-
-        <p>1982年，经济学家 Robert Engle 提出了 <strong>ARCH（自回归条件异方差）模型</strong>，开创性地将波动率建模为过去残差平方的函数。模型的核心思想非常直观：如果昨天的收益波动很大，那么今天的条件方差也应该偏大。</p>
-
-        <p>ARCH(q) 模型的形式为：</p>
-
-        <pre><code>收益率方程: r_t = μ + ε_t,   ε_t ~ N(0, σ²_t)
-方差方程:   σ²_t = ω + α₁·ε²_{t-1} + α₂·ε²_{t-2} + ... + α_q·ε²_{t-q}</code></pre>
-
-        <p>其中 σ²_t 是条件方差（今天的波动率），它等于过去 q 期残差平方的加权平均。参数 ω 是长期平均方差，α 系数衡量新信息对波动率的冲击强度。</p>
-
-        <p>但 ARCH 模型有个实际痛点：如果要捕捉长期的波动记忆，就需要很多阶数 (q 很大)，参数过多导致估计不稳定。1986年，Engle 的学生 <strong>Tim Bollerslev</strong> 拓展出了 <strong>GARCH（广义自回归条件异方差）</strong>模型，在方程中加入了条件方差自身的滞后项：</p>
-
-        <pre><code>GARCH(1,1) 方差方程:
-σ²_t = ω + α·ε²_{t-1} + β·σ²_{t-1}</code></pre>
-
-        <p>这个简洁的公式仅用三个参数就描述了一个无限记忆的波动过程。α (ARCH项) 代表新信息冲击的强度，β (GARCH项) 代表波动的持久性。当α+β接近1时，波动率冲击非常持久——这在真实金融数据中极为常见。</p>
-
-        <div class="tip">
-            <strong>实务经验：</strong>GARCH(1,1) 是金融实践中使用频率最高的波动率模型。统计显著且α+β ≈ 1 的 GARCH(1,1) 通常比任何高阶 GARCH(p,q) 表现都好。
-        </div>
-
-        <h3>15.3 用 Python 拟合 GARCH 模型</h3>
-
-        <p>以下代码展示了如何用 <code>arch</code> 库对股票收益率拟合 GARCH(1,1) 模型并做波动率预测：</p>
-
-        <pre><code>import yfinance as yf
-import pandas as pd
-from arch import arch_model
-import matplotlib.pyplot as plt
-
-# 下载标普500数据
-sp500 = yf.download('SPY', start='2015-01-01', end='2024-12-31')
-returns = sp500['Adj Close'].pct_change().dropna() * 100
-
-# 拟合 GARCH(1,1) 模型
-model = arch_model(returns, vol='Garch', p=1, q=1, dist='normal')
-result = model.fit(disp='off')
-
-print(result.summary())
-
-# 预测未来10天的波动率
-forecasts = result.forecast(horizon=10)
-predicted_vol = forecasts.variance.iloc[-1] ** 0.5
-print("预测波动率 (标准差%):")
-print(predicted_vol)
-
-# 绘制条件波动率
-result.conditional_volatility.plot(figsize=(10, 4))
-plt.title('SPY 条件波动率 (GARCH(1,1))')
-plt.show()</code></pre>
-
-        <p>运行结果中的 <code>alpha[1]</code> 和 <code>beta[1]</code> 系数之和通常在 0.97-0.99 之间，印证了波动率的强持久性。</p>
-
-        <h3>15.4 GARCH 家族的扩展</h3>
-
-        <p>标准 GARCH 假设好消息和坏消息对波动率的影响是对称的。但真实市场并非如此——<strong>杠杆效应</strong>意味着负收益带来的波动更大。为此，研究者开发了多种扩展模型：</p>
-
-        <table>
-            <tr><th>模型</th><th>全称</th><th>核心特点</th></tr>
-            <tr><td>EGARCH</td><td>指数 GARCH</td><td>允许不对称效应，杠杆系数为负时表示坏消息冲击更大；无需约束参数为正</td></tr>
-            <tr><td>GJR-GARCH</td><td>Glosten-Jagannathan-Runkle GARCH</td><td>引入哑变量区分正负冲击，直接量化杠杆效应</td></tr>
-            <tr><td>TGARCH</td><td>Threshold GARCH</td><td>类似 GJR，用阈值区分正负残差</td></tr>
-            <tr><td>APARCH</td><td>Asymmetric Power ARCH</td><td>在方差方程中引入幂变换，灵活性最高</td></tr>
-        </table>
-
-        <p>在大多数股票指数数据中，EGARCH 和 GJR-GARCH 比标准 GARCH 拟合更好，因为它们的杠杆项通常高度显著。</p>
-
-        <pre><code># EGARCH 模型示例
-egarch_model = arch_model(returns, vol='EGARCH', p=1, q=1)
-egarch_result = egarch_model.fit(disp='off')
-print(egarch_result.summary())
-
-# 关注 leverage 系数——显著为负说明杠杆效应存在</code></pre>
-
-        <h3>15.5 波动率预测与 VaR 计算</h3>
-
-        <p>波动率预测的直接应用是风险管理。最常见的指标是 <strong>Value-at-Risk (VaR)</strong>，即在给定置信水平下，某资产在持有期内的最大可能损失。</p>
-
-        <p>基于 GARCH 的 VaR 计算公式为：</p>
-
-        <pre><code>VaR(95%) = μ + σ_t × z_0.05
-
-其中 σ_t 是 GARCH 预测的标准差，z_0.05 = -1.645 (正态分布5%分位数)</code></pre>
-
-        <p>以下代码展示了回测 VaR 的方法：</p>
-
-        <pre><code># 基于 GARCH 的 VaR 计算
-var_95 = result.conditional_volatility * (-1.645)
-var_99 = result.conditional_volatility * (-2.326)
-
-# 检验 VaR 的命中率
-hits_95 = (returns &lt; var_95).mean()
-print(f"95% VaR 命中率: {hits_95:.4f} (期望 0.05)")
-
-# 绘制回测结果
-plt.figure(figsize=(12, 5))
-plt.plot(returns.index, returns, alpha=0.6, label='收益率')
-plt.plot(var_95.index, var_95, label='95% VaR', color='red')
-plt.legend()
-plt.show()</code></pre>
-
-        <p>一个好的 VaR 模型，其实际亏损超过 VaR 边界的比例应该接近理论值（5% 或 1%）。如果偏差过大，说明模型需要调整。</p>
-
-        <div class="warning">
-            <strong>⚠ 重要提醒：</strong>VaR 不是完美指标。当市场发生极端暴跌时，VaR 往往低估实际风险。建议结合压力测试和情景分析一同使用。
-        </div>
-
-        <h3>15.6 真实的教训：LTCM 与忽视的波动率</h3>
-
-        <p>1998年，<strong>长期资本管理公司（LTCM）</strong>的崩溃是金融史上最经典的波动率风险管理失败案例。LTCM 由诺贝尔经济学奖得主 Myron Scholes 和 Robert Merton 联合创立，团队堪称"梦之队"。</p>
-
-        <p>LTCM 的核心策略是"收敛套利"——发现价格偏离的债券，押注它们最终会回归合理价差。他们的模型假设市场波动率维持在历史平均水平附近。然而 1998 年 8 月，俄罗斯债务违约引发全球恐慌，市场波动率在数天内飙升到历史均值的 5 倍以上。</p>
-
-        <p>如果 LTCM 使用 GARCH 模型动态监测波动率，他们会发现：早在危机爆发前，模型估计的条件波动率已经开始显著攀升。GARCH 模型的"波动率记忆"特性能够捕捉到这种渐进的紧张状态，远比基于历史均值的静态估计灵敏。遗憾的是，LTCM 过度依赖理论模型，忽视了波动率的动态变化，最终在短短四个月内损失 46 亿美元并导致系统性风险爆发。</p>
-
-        <div class="highlight">
-            <strong>要点总结：</strong>波动率是时变的，且具有聚集性和持久性。用 GARCH 类模型动态建模波动率，是现代金融风险管理的基石。忽视波动率的动态特征，代价可能是灾难性的。
-        </div>
-
-        <h3>15.7 本章小结</h3>
-
-        <p>本章我们学习了波动率建模的核心思想：</p>
-        <ul>
-            <li>金融时间序列的典型特征（厚尾、波动聚集、杠杆效应）</li>
-            <li>ARCH 模型用滞后残差平方预测条件方差</li>
-            <li>GARCH(1,1) 以极简的三参数形式捕捉波动率的长期记忆</li>
-            <li>EGARCH 和 GJR-GARCH 处理杠杆效应——负收益对波动的影响更大</li>
-            <li>基于 GARCH 的波动率预测可用于 VaR 计算和风险管理</li>
-        </ul>
-
-        <p>GARCH 模型处理的是<strong>单一时间序列</strong>的波动率。但在现实经济系统中，多个变量之间相互影响——GDP 变动会影响利率，利率又反作用于 GDP。下一章我们将走进多元时间序列的世界，学习<strong>向量自回归模型 (VAR)</strong>，它让我们能够同时建模多个交互的时间序列。</p>
-
-        <div class="footer-nav">
-            <a href="14.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="16.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+assert acorr_ljungbox(r**2, lags=[10]).iloc[0, 1] &lt; 0.01
+assert round(alpha + beta, 2) == 0.95</code></pre><p>预期结果：<code>r</code> 的 Ljung–Box p 值较大（不拒绝线性无关），而 <code>r²</code> 的 p 值极小（拒绝平方无关），这正是波动率聚集的指纹。<strong>这是合成数据上的结构验证，不构成对任何真实资产的结论</strong>；拟合真实数据通常用专门的 GARCH 库（如 Python 的 <code>arch</code>）做极大似然估计。</p></section>
+<section id="wrap" aria-labelledby="wrap-head"><h2 id="wrap-head">09 · 与多元序列的衔接</h2><p>到这里，我们处理的都是<strong>单一序列</strong>。但现实系统中变量相互影响：利率与通胀、多个市场指数、供给与需求。下一章进入多元时间序列，学习向量自回归（VAR），它把“一个序列用自身滞后预测”扩展为“一组序列互相用彼此的滞后预测”。</p><div class="thought"><strong>一个可用的波动率报告需要回答：</strong>用收益率还是对数收益？均值方程是否已处理（否则残差估计有偏）？α+β 是否小于 1、标准误是否合理？是否检验了不对称与厚尾？VaR 是否经过命中率回测？</div></section>
+<section id="references"><h2>进一步阅读与技术核对</h2><p>引用指向模型定义与实现接口的官方资料。</p><ol class="refs"><li><a href="https://www.statsmodels.org/stable/examples/notebooks/generated/arch.html" target="_blank" rel="noopener noreferrer">statsmodels：波动率（ARCH/GARCH）模型示例</a></li><li><a href="https://bashtage.github.io/arch/" target="_blank" rel="noopener noreferrer">arch 库：GARCH 类模型文档</a></li><li><a href="https://otexts.com/fpp3/tscv.html" target="_blank" rel="noopener noreferrer">FPP3：时间序列交叉验证与滚动评估</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.stats.diagnostic.acorr_ljungbox.html" target="_blank" rel="noopener noreferrer">statsmodels：Ljung–Box 检验</a></li></ol></section><nav class="bottom-nav" aria-label="章节导航"><a href="14.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="16.html">下一章 →</a></nav></article></main></div></body></html>
