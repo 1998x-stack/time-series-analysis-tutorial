@@ -25,6 +25,12 @@ function data(kind,v){
   const half=p>0&&p<1?Math.log(0.5)/Math.log(p):Infinity;
   return {values,text:'α=0.10，β='+v.toFixed(2)+'，α+β='+p.toFixed(2)+'；冲击按 (α+β) 的幂衰减'+(p<1?'，半衰期约 '+half.toFixed(1)+' 期。':'（≥1，方差过程非平稳）。')};
  }
+ if(kind==='var'){
+  const a=Number(v); const A=[[0.5,a],[0.2,0.6]]; const raw=[]; let P=[[1,0],[0,1]];
+  for(let h=0;h<12;h++){raw.push(P[0][1]);P=[[A[0][0]*P[0][0]+A[0][1]*P[1][0],A[0][0]*P[0][1]+A[0][1]*P[1][1]],[A[1][0]*P[0][0]+A[1][1]*P[1][0],A[1][0]*P[0][1]+A[1][1]*P[1][1]]];}
+  const mx=Math.max(...raw.map(Math.abs),1e-9);
+  return {values:raw.map(x=>x/mx),text:'交叉系数 a₁₂='+a.toFixed(2)+'：y₁ 对 y₂ 冲击的响应在首期约为 '+raw[1].toFixed(3)+'，随后沿滞后衰减（柱高已归一）。'};
+ }
  return {values:[],text:''};
 }
 for(const root of labs){

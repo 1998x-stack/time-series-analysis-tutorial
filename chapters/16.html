@@ -1,202 +1,27 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第16章 多元时间序列(VAR)</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html" class="active">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-
-        <h2>第16章 多元时间序列：向量自回归模型 (VAR)</h2>
-
-        <p>到目前为止，我们所有的模型都只在处理<strong>一个</strong>时间序列：预测某只股票的价格、某个城市的温度、某产品的销量。但在现实世界中，事物是相互联系的。GDP 的变化会影响失业率，失业率的变化会影响消费，消费的变化又会反过来影响 GDP。如果只用单变量模型逐一建模，我们就丢失了变量之间的<strong>反馈效应</strong>和<strong>同时动态</strong>。</p>
-
-        <p>向量自回归模型（Vector Autoregression，简称 <strong>VAR</strong>）正是为了解决这个问题而生的。它将单变量 AR 模型的思想推广到 k 维——每个变量都用自己的滞后项和其他所有变量的滞后项来回归。这样，整个系统的联合动态就装进了一个模型里。</p>
-
-        <div class="highlight">
-            <strong>本章核心目标：</strong>理解 VAR 模型的估计、定阶和解释方法，掌握 Granger 因果检验和脉冲响应分析的实践技能。
-        </div>
-
-        <h3>16.1 VAR 模型的结构</h3>
-
-        <p>考虑两个变量 y₁ 和 y₂ 的情况。一个 VAR(1) 模型写成矩阵形式就是：</p>
-
-        <pre><code>[y₁_t]   [c₁]   [a₁₁  a₁₂] [y₁_{t-1}]   [ε₁_t]
-[y₂_t] = [c₂] + [a₂₁  a₂₂]·[y₂_{t-1}] + [ε₂_t]
-
-更简洁地:
-y_t = c + A·y_{t-1} + ε_t</code></pre>
-
-        <p>关键的区别在于：每个方程都包含了对方变量的滞后项。a₁₂ 衡量的是 y₂ 滞后一期对今天 y₁ 的影响；a₂₁ 则反之。如果 a₁₂ ≠ 0，我们就说 y₂ "Granger 引起" y₁。</p>
-
-        <p>推广到 VAR(p) 就是：</p>
-
-        <pre><code>y_t = c + A₁·y_{t-1} + A₂·y_{t-2} + ... + A_p·y_{t-p} + ε_t</code></pre>
-
-        <p>其中每个 A_i 都是 k×k 的系数矩阵，一共需要估计 k + p·k² 个参数。可以看到，当变量数和滞后阶数增加时，参数数量增长得非常快。</p>
-
-        <div class="tip">
-            <strong>经验法则：</strong>VAR 模型适合 3-8 个变量的中等规模系统。变量太多会导致参数爆炸——比如 10 个变量、VAR(4) 就有 10 + 4×100 = 410 个参数要估计。
-        </div>
-
-        <h3>16.2 定阶与估计</h3>
-
-        <p>VAR 的滞后阶数 p 通常通过信息准则选择。最常用的是 <strong>AIC（赤池信息准则）</strong>和 <strong>BIC（贝叶斯信息准则）</strong>：</p>
-
-        <pre><code>import pandas as pd
-import yfinance as yf
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="向量自回归 VAR：用所有变量的滞后项同时预测多个序列，理解定阶、Granger 因果、脉冲响应与方差分解的用法和边界。"><title>多元时间序列：向量自回归 VAR · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内目录"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a><a href="14.html">14　预测与评估</a><a href="15.html">15　波动率建模</a><a href="16.html" aria-current="page">16　向量自回归 VAR</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#structure">01 · VAR 的结构</a><a href="#estimation">02 · 定阶与参数增长</a><a href="#granger">03 · Granger 因果</a><a href="#irf">04 · 脉冲响应与识别</a><a href="#fevd">05 · 方差分解</a><a href="#interactive">06 · 交互：交叉系数与响应</a><a href="#experiment">07 · Python：拟合与检验</a><a href="#wrap">08 · 与协整的衔接</a></div><div class="separ"></div><a href="../index.html#catalog">全部课程 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 16 / 28 · MULTIVARIATE</p><h1>向量自回归：让多个序列互相预测</h1><p class="dek">VAR 把单变量 AR 推广到 k 维：每个变量都用全部变量的滞后项回归。本章讲清结构、定阶与参数增长、Granger 预测因果、脉冲响应的识别问题，以及方差分解的含义。</p><div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 边界与诊断</div><p>此前所有模型都只用一个序列。但经济与业务系统里变量互相反馈：利率影响通胀，通胀又影响政策。单变量逐一建模会丢掉<strong>交叉滞后</strong>与联合动态。</p><p>先纠正一个误解：<strong>Granger 因果不是真实因果</strong>。它只说明“加入 x 的历史能改善对 y 的预测”，不含干预含义。把它直接读成“x 导致 y”是最常见的误用。</p></header>
+<section id="structure" aria-labelledby="structure-head"><h2 id="structure-head">01 · VAR 的结构</h2><p>VAR(p) 中，k 个变量的当期值由常数项、各自与彼此的 p 阶滞后、以及当期创新共同决定。以 VAR(1) 为例，写成向量形式如下。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="VAR(1) 的向量形式"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="VAR(1)：y_t = c + A y_{t−1} + ε_t"><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><mi>c</mi><mo>+</mo><mi>A</mi><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>ε</mi><mi>t</mi></msub></mrow></math><div class="formula-note">y_t、c、ε_t 为 k 维向量，A 为 k×k 系数矩阵。A 的非对角元 a₁₂、a₂₁ 就是“对方变量滞后”的影响，它们让方程之间不再独立。</div></div><figure><img src="../assets/svg/16-var-graph.svg" width="960" height="380" loading="lazy" alt="两个变量的 VAR 中，y1 与 y2 的当期值都受彼此及自身的滞后影响，形成双向交叉。"><figcaption>两变量 VAR 的依赖结构：<code>y₁</code> 与 <code>y₂</code> 的当期值都受彼此与自身的滞后影响（双向箭头）。这是建模形式上的条件相关，<strong>不等同于真实因果</strong>。图为结构示意。</figcaption></figure><p>与单变量模型最大的不同在于：各方程必须<strong>联合估计</strong>，因为不同方程的创新之间通常同期相关（Σ 非对角）。逐一单独估计会忽略这种同期相关，影响推断。</p></section>
+<section id="estimation" aria-labelledby="estimation-head"><h2 id="estimation-head">02 · 定阶与参数增长</h2><p>每个方程的系数数量随变量数与滞后阶数迅速膨胀，这是 VAR 最主要的实践约束。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="VAR 的参数数量"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="VAR 参数数量约等于 k + p k²"><mrow><mi>参数个数</mi><mo>≈</mo><mi>k</mi><mo>+</mo><mi>p</mi><msup><mi>k</mi><mn>2</mn></msup></mrow></math><div class="formula-note">k=10、p=4 时约需 410 个参数（不含协方差参数）。变量越多、滞后越长，越容易过拟合，因此 VAR 通常用于中小规模系统。</div></div><div class="table-scroll"><table><thead><tr><th scope="col">准则</th><th scope="col">倾向</th><th scope="col">权衡</th></tr></thead><tbody><tr><td>AIC</td><td>选更多滞后</td><td>预测导向；偏差小但方差大</td></tr><tr><td>BIC</td><td>选更少滞后</td><td>相合性导向；参数多时更保守</td></tr><tr><td>HQIC</td><td>居中</td><td>惩罚介于 AIC 与 BIC 之间</td></tr></tbody></table></div><p>VAR 要求各变量（或处理后的变量）平稳。若水平含单位根，简单差分虽可平稳，却可能丢掉长期均衡关系——这正是下一章协整要处理的问题。</p></section>
+<section id="granger" aria-labelledby="granger-head"><h2 id="granger-head">03 · Granger 因果</h2><p>“x Granger 引起 y”的含义是：在 y 自身滞后之外，加入 x 的滞后能显著改善对 y 的预测。它的原假设是“x 的全部滞后系数联合为零”，用 F 或卡方统计量检验。</p><p>必须强调：<strong>它衡量的是预测增量，不是干预因果</strong>。两个变量可能因为共同趋势而互相“引起”；也可能存在第三变量同时驱动两者。经验上“黄油产量 Granger 引起 GDP”这类反例，正是共同趋势造成的假象。因此 Granger 结论应配合理论与平稳性处理来解读。</p></section>
+<section id="irf" aria-labelledby="irf-head"><h2 id="irf-head">04 · 脉冲响应与识别</h2><p>系数矩阵包含大量信息，但存在反馈时难以直接解读。脉冲响应函数（IRF）追踪“给某个变量一个冲击后，系统各变量在未来各期的响应路径”。</p><figure><img src="../assets/svg/16-irf.svg" width="960" height="380" loading="lazy" alt="对 y1 的冲击后，y1 自身与交叉项 y2 的响应均随滞后期衰减。"><figcaption>VAR(1) 的脉冲响应：青为 y₁ 对自身冲击的响应，紫为交叉项（y₁ 对 y₂ 冲击）的响应，两者随滞后期衰减。<strong>只要 A 的特征值模都小于 1，响应最终回落</strong>，系统才可平稳。图为按解析系数绘制的教学示意。</figcaption></figure><p>问题在于：当期创新之间通常同期相关，无法把它们看成互不相关的“原始冲击”。常见做法（Cholesky 正交化）<strong>会依赖变量的排序</strong>——排序不同，IRF 会不同。这意味着 IRF 需要<strong>识别假设</strong>（如排序或符号约束）才能解释，不能不加说明地当作客观事实。失衡的解读往往是 VAR 应用中最隐蔽的错误。</p></section>
+<section id="fevd" aria-labelledby="fevd-head"><h2 id="fevd-head">05 · 方差分解</h2><p>预测误差方差分解（FEVD）回答：y 的 h 步预测误差方差中，有多大比例由自身冲击贡献、多大比例由其他变量的冲击贡献。</p><figure><img src="../assets/svg/16-fevd.svg" width="960" height="380" loading="lazy" alt="y1 预测误差方差中来自自身冲击的比例随步长下降，交叉贡献上升。"><figcaption>方差分解：短期（h=0）几乎全部来自 y₁ 自身冲击，随步长增加，来自 y₂ 冲击的份额上升后再趋稳。<strong>短期由自身主导、远期由系统传导主导</strong>是常见模式。图为同一 VAR(1) 的解析分解，非估计结果。</figcaption></figure><p>解读 FEVD 同样受识别与排序影响，且它是<strong>样本内的分解</strong>：份额的大小不属于因果效应，只描述预测误差的归属。</p></section>
+<section id="interactive" aria-labelledby="interactive-head"><h2 id="interactive-head">06 · 交互：交叉系数与响应</h2><p>固定 A 的主对角元（0.5、0.6），拖动滑块改变交叉系数 a₁₂，看 y₁ 对 y₂ 冲击的脉冲响应形状如何变化。a₁₂ 越大，交叉传导越强。</p><div class="concept-lab" data-lab="var"><label for="var-param">设置交叉系数 a₁₂ = <output data-lab-output for="var-param">0.30</output></label><input id="var-param" data-lab-input type="range" min="0" max="0.50" step="0.05" value="0.30"><div class="lab-explainer" data-lab-description aria-live="polite">交叉系数 a₁₂=0.30：y₁ 对 y₂ 冲击的响应在首期后衰减。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">本图表示已知系数下的理论响应（柱高已归一），不是从真实数据估计出来的。</p></div></section>
+<section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">07 · Python：拟合与检验</h2><p>下面生成一个已知系数的平稳 VAR(1)，用 statsmodels 选择阶数、估计系数，并做 Granger 因果检验。只依赖 numpy 与 statsmodels。</p><pre tabindex="0"><code>import numpy as np
 from statsmodels.tsa.api import VAR
 
-# 准备数据：GDP增速、利率、通胀率
-data = yf.download(['GDP', '^TNX', 'CPI'], period='10y')
-# 实际使用中应从 FRED 等经济数据库获取
+rng = np.random.default_rng(16)
+n = 600
+A = np.array([[0.5, 0.3], [0.2, 0.6]])   # 特征值模均小于 1，平稳
+Y = np.zeros((n, 2))
+for t in range(1, n):
+    Y[t] = A @ Y[t-1] + rng.standard_normal(2)
 
-# 假设 df 是包含三列的数据框
-model = VAR(df)
-# 自动选择滞后阶数
-lag_order = model.select_order(maxlags=12)
-print(lag_order.summary())
+model = VAR(Y)
+print(model.select_order(8).summary())     # 期望选中滞后 1
+result = model.fit(2)
+print(&quot;A1 估计:&quot;, np.round(result.coefs[0], 3))    # 期望接近真实 A
+print(&quot;y2 是否 Granger 引起 y1:&quot;,
+      result.test_causality(0, 1, kind=&quot;f&quot;).pvalue)
 
-# 拟合 VAR(2)
-results = model.fit(2)
-print(results.summary())</code></pre>
-
-        <p>需要注意：VAR 要求所有变量都是平稳的。如果变量不平稳，需要先做差分，或者考虑后面章节要讲的协整方法。</p>
-
-        <table>
-            <tr><th>准则</th><th>偏好</th><th>说明</th></tr>
-            <tr><td>AIC</td><td>倾向于选更多滞后</td><td>预测导向，偏差小方差大</td></tr>
-            <tr><td>BIC</td><td>倾向于选更少滞后</td><td>一致性导向，大样本下选真实阶数</td></tr>
-            <tr><td>HQIC</td><td>居中</td><td>Hannan-Quinn 准则，介于二者之间</td></tr>
-        </table>
-
-        <h3>16.3 Granger 因果检验</h3>
-
-        <p>Granger 因果性检验回答的问题是：变量 x 的过去值是否有助于预测变量 y 的未来值？如果能，我们就说 x "Granger 引起" y。</p>
-
-        <div class="warning">
-            <strong>⚠ 极其重要的误解：</strong>Granger 因果关系≠真正的因果关系！它只能说明 x 在<strong>预测</strong>意义上先于 y，不能证明 x 导致了 y。著名的例子是"黄油产量 Granger 引起 GDP 增长"——两者同步上涨只是因为经济在增长，黄油产量并没有推动经济。
-        </div>
-
-        <p>检验的原假设是：x 的所有滞后项系数联合为零（即 x 不 Granger 引起 y）。使用 F 统计量或卡方统计量进行检验：</p>
-
-        <pre><code># Granger 因果检验
-from statsmodels.tsa.stattools import grangercausalitytests
-
-# 检验利率是否 Granger 引起 GDP 增速
-gc_result = grangercausalitytests(df[['GDP_growth', 'interest_rate']], maxlag=4)
-
-# VAR 模型内置的因果检验
-causality_dict = results.test_causality('GDP', 'interest_rate', kind='f')
-print(causality_dict)</code></pre>
-
-        <h3>16.4 脉冲响应函数</h3>
-
-        <p>VAR 模型的系数矩阵包含大量信息，但直接解读系数很困难——因为变量之间存在反馈效应，某个冲击会在系统内反复传导。<strong>脉冲响应函数（Impulse Response Function, IRF）</strong>是解决这个问题的利器。</p>
-
-        <p>IRF 追踪的是：给某个变量一个单位的标准差冲击，未来各期内所有变量会如何响应？</p>
-
-        <pre><code># 计算并绘制脉冲响应
-irf = results.irf(periods=20)  # 追踪20期
-irf.plot(orth=True)  # 使用正交化脉冲响应
-
-# 查看具体数值
-irf_table = irf.to_dataframe()
-print(irf_table.head())</code></pre>
-
-        <p>一个典型的 IRF 图包含 k×k 个子图。例如在 GDP-利率-通胀三变量系统中，(2,1) 位置的图展示的是：给 GDP 一个正向冲击后，利率在接下来 20 个季度中的反应路径。通常我们会看到 GDP 冲击先推高利率（央行加息抑制通胀），然后利率升高又逐渐压制 GDP，形成完整的反馈循环。</p>
-
-        <div class="tip">
-            <strong>解读技巧：</strong>关注脉冲响应的形状而不是具体数值——冲击是逐渐衰减还是震荡？是短期反转还是长期持久？这些模式比系数大小更有经济意义。
-        </div>
-
-        <h3>16.5 方差分解</h3>
-
-        <p>方差分解回答的是另一个问题：y 的预测误差中，有多大比例是由自身冲击引起的，有多大比例是由其他变量的冲击引起的？</p>
-
-        <pre><code># 预测误差方差分解
-fevd = results.fevd(periods=10)
-fevd.plot()
-
-# 查看具体数值
-print(fevd.summary())</code></pre>
-
-        <p>如果 GDP 的预测误差在 10 期后仍有 80% 来自自身、20% 来自利率冲击，说明 GDP 的波动主要由内生动力驱动。反之，如果利率冲击能解释 50% 以上的 GDP 波动，那么货币政策对实体经济的影响就非常显著。</p>
-
-        <h3>16.6 真实故事：GDP-利率-通胀的三角关系</h3>
-
-        <p>2010 年代，经济学家利用 VAR 模型分析了中国宏观经济的三元系统——GDP 增速、银行间利率和 CPI 通胀率。数据覆盖 2000-2015 年，这是一个经典的 VAR 应用案例。</p>
-
-        <p>研究的关键发现包括：</p>
-        <ul>
-            <li><strong>Granger 因果：</strong>利率显著 Granger 引起通胀，但通胀对利率的 Granger 因果关系较弱——说明当时的货币政策对价格有引导作用，但价格对货币政策的反馈不够灵敏</li>
-            <li><strong>脉冲响应：</strong>一个百分点的利率提升，会在 4 个季度后使通胀下降约 0.3 个百分点，并在第 6 个季度达到最大效果</li>
-            <li><strong>方差分解：</strong>GDP 增速的波动中有约 35% 可由利率冲击解释，说明货币政策是经济周期的重要驱动力</li>
-        </ul>
-
-        <p>这个案例生动展示了 VAR 模型如何帮助经济学家<strong>定量刻画</strong>宏观变量之间的互动关系。虽然不能断言因果关系，但它在预测和政策的"what-if"分析中提供了不可替代的价值。</p>
-
-        <div class="highlight">
-            <strong>要点总结：</strong>VAR 将单变量 AR 扩展到多变量系统，Granger 因果检验和脉冲响应是解读 VAR 的两大工具，方差分解量化各变量的相对重要性。
-        </div>
-
-        <h3>16.7 本章小结</h3>
-
-        <p>本章我们学习了：</p>
-        <ul>
-            <li>VAR 模型用所有变量的滞后项同时预测多个时间序列</li>
-            <li>信息准则（AIC/BIC/HQIC）用于选择最优滞后阶数</li>
-            <li>Granger 因果检验衡量预测能力，但<strong>不是</strong>真正的因果推断</li>
-            <li>脉冲响应函数追踪单一冲击在整个系统中的传播路径</li>
-            <li>方差分解量化各变量对预测误差的贡献比例</li>
-        </ul>
-
-        <p>VAR 模型有一个关键前提：所有变量必须是平稳的。但如果非平稳变量之间存在长期均衡关系呢？那就不能简单差分——我们需要<strong>协整</strong>这个更精巧的工具。下一章我们将学习<strong>协整与误差修正模型 (VECM)</strong>，它同时捕捉变量的短期动态和长期均衡。</p>
-
-        <div class="footer-nav">
-            <a href="15.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="17.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+assert np.all(np.abs(np.linalg.eigvals(A)) &lt; 1)</code></pre><p>此例中信息准则会选中真实阶数 1，系数估计接近真值。<strong>这是合成数据上的结构验证，不构成对任何真实系统的结论</strong>；真实应用需先处理非平稳与非平稳趋势，并说明脉冲响应的识别假设。</p></section>
+<section id="wrap" aria-labelledby="wrap-head"><h2 id="wrap-head">08 · 与协整的衔接</h2><p>VAR 要求变量平稳。但对两个同阶非平稳变量，直接差分虽可平稳，却会丢掉它们之间的<strong>长期均衡</strong>。如果它们存在稳定的线性组合（协整），更合适的做法是误差修正模型（VECM），它同时保留短期动态与向长期均衡的回复。下一章展开。</p><div class="thought"><strong>一个可用的 VAR 报告需要回答：</strong>变量是否已做平稳化，还是需要协整？滞后阶数由哪个准则选定？Granger 结论是否被误读为因果？脉冲响应/方差分解采用了何种识别与排序假设？样本量相对参数数量是否足够？</div></section>
+<section id="references"><h2>进一步阅读与技术核对</h2><p>引用指向 VAR、因果检验与实现接口的官方资料。</p><ol class="refs"><li><a href="https://www.statsmodels.org/stable/vector_ar.html" target="_blank" rel="noopener noreferrer">statsmodels：向量自回归（VAR）用户指南</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.vector_ar.var_model.VAR.html" target="_blank" rel="noopener noreferrer">statsmodels：VAR 模型 API</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.stattools.grangercausalitytests.html" target="_blank" rel="noopener noreferrer">statsmodels：Granger 因果检验</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.vector_ar.var_model.VARResults.test_causality.html" target="_blank" rel="noopener noreferrer">statsmodels：VAR 结果的内置因果检验</a></li></ol></section><nav class="bottom-nav" aria-label="章节导航"><a href="15.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="17.html">下一章 →</a></nav></article></main></div></body></html>
