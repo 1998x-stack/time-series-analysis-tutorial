@@ -1,230 +1,33 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第14章 预测与评估</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html" class="active">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-        <h2>第14章 预测与评估</h2>
-
-        <p>大家好！经过前面几章的学习和建模实践，我们终于到了最激动人心的一步——用模型做预测，并回答那个终极问题："这个模型到底准不准？"</p>
-
-        <p>预测是时间序列分析的"产品交付"环节。不管你的模型理论多么完美、诊断多么漂亮，如果预测结果不准，在业务眼中就是废的。这一章我们聚焦两件事：怎么做预测，以及怎么判断预测好不好。</p>
-
-        <h3>14.1 条件期望预测：ARIMA 如何"看到"未来</h3>
-
-        <p>ARIMA 模型的预测基于一个优雅的思想——条件期望（Conditional Expectation）。给定到今天为止的所有历史信息，我们对未来某个时刻 Y_{t+h} 的最佳预测就是 E[Y_{t+h} | Y₁, Y₂, ..., Y_t]，也就是"在当前已知信息下，Y_{t+h} 的期望值"。</p>
-
-        <p>为什么是"条件期望"？因为对于 ARIMA 模型，条件期望恰好就是最小均方误差预测（Minimum Mean Square Error Forecast）。没有其他预测函数能产生更小的平均误差平方。</p>
-
-        <p>对于 ARIMA 模型，预测可以一步步递推：</p>
-
-        <p><strong>一步预测（h=1）：</strong>Ŷ_{t+1|t} = c + φ₁Y_t + φ₂Y_{t-1} + ... + θ₁ε_t + θ₂ε_{t-1} + ...</p>
-
-        <p>注意所有右侧变量在时刻 t 都是已知的（Y 的历史值和 ε 的估计值），所以可以直接计算。</p>
-
-        <p><strong>两步预测（h=2）：</strong>Ŷ_{t+2|t} = c + φ₁Ŷ_{t+1|t} + φ₂Y_t + ... + θ₂ε_t + ...</p>
-
-        <p>这里 Y_{t+1} 用预测值代替，ε_{t+1} 用 0 代替（因为 ε 是白噪声，对未来不可预测）。多步预测时，MA 部分会逐渐"耗尽"——超过 q 步后 MA 项全部为 0。</p>
-
-        <div class="highlight">
-            <strong>关键性质：</strong>对于平稳 ARMA 模型，随着预测步数 h 增加，预测值会收敛到序列的无条件均值。预测方差则从 σ²（一步预测误差方差）逐渐增大到序列的总体方差。这意味着：预测越远，你越不确定，所以预测会"回归"到平均水平。
-        </div>
-
-        <h3>14.2 预测误差方差与置信区间</h3>
-
-        <p>点预测（Point Forecast）只有一半的信息，另一半是"这个预测有多不确定"。这就是预测区间（Prediction Interval）的作用。</p>
-
-        <p>对于 ARIMA 模型，在正态误差假设下，h 步预测的 95% 预测区间为：</p>
-
-        <p><strong>Ŷ_{t+h|t} ± 1.96 × √(Var(e_{t+h|t}))</strong></p>
-
-        <p>其中 Var(e_{t+h|t}) 是 h 步预测误差的方差，它随着 h 增加而增加。预测区间的宽度反映了预测的不确定性：</p>
-
-        <ul>
-            <li>h=1 时区间最窄（只包含一步预测误差 σ²）</li>
-            <li>h 增大时区间变宽（因为多步预测误差是各步冲击的累积）</li>
-            <li>对平稳 ARMA，区间最终收敛到一个固定宽度</li>
-            <li>对 ARIMA（有差分），区间会随着 h 线性或指数级变宽</li>
-        </ul>
-
-        <div class="tip">
-            <strong>重要：</strong>如果 ARIMA 模型包含差分（d ≥ 1），预测区间会随着 h 趋于无穷而无限变宽。这完全合理——因为你无法无限精确地预测一个随机游走的未来位置。相反，如果数据是平稳的（d=0），预测区间会收敛到一个固定宽度。两种情形都是对的，只是数据的性质不同。
-        </div>
-
-        <h3>14.3 预测评估指标</h3>
-
-        <p>如何量化一个预测的准确度？最常用的指标有以下几个：</p>
-
-        <table>
-            <tr>
-                <th>指标</th>
-                <th>公式</th>
-                <th>特点</th>
-            </tr>
-            <tr>
-                <td>MAE</td>
-                <td>mean(|Y_t - Ŷ_t|)</td>
-                <td>直观，单位与原始数据一致</td>
-            </tr>
-            <tr>
-                <td>RMSE</td>
-                <td>sqrt(mean((Y_t - Ŷ_t)²))</td>
-                <td>对大误差惩罚更重</td>
-            </tr>
-            <tr>
-                <td>MAPE</td>
-                <td>mean(|Y_t - Ŷ_t| / Y_t) × 100%</td>
-                <td>无量纲，方便跨序列比较</td>
-            </tr>
-            <tr>
-                <td>MASE</td>
-                <td>MAE / MAE_naive</td>
-                <td>相对于朴素基准的比较</td>
-            </tr>
-        </table>
-
-        <p><strong>MAE（Mean Absolute Error）</strong>是最直观的指标——平均每个预测偏差了多少。单位就是 Y 的单位，易懂但无法跨不同量纲的序列比较。</p>
-
-        <p><strong>RMSE（Root Mean Square Error）</strong>由于平方操作，它对大误差的惩罚比 MAE 更重。如果你的业务场景中"大偏差"的代价远大于"小偏差"（比如库存缺货比库存过剩严重得多），RMSE 更合适。</p>
-
-        <p><strong>MAPE（Mean Absolute Percentage Error）</strong>将误差转化为百分比，方便跨不同量级的序列比较。但 MAPE 有一个致命的缺陷——当实际值 Y_t 接近零时，MAPE 会趋向无穷大。</p>
-
-        <div class="warning">
-            <strong>MAPE 翻车现场：</strong>有一次我在评估一个销量预测模型，大部分产品的 MAPE 在 15% 左右，但某个产品的 MAPE 高达 5800%。检查后发现：这个产品有几个月销量为零（缺货），公式 |0 - 预测值| / 0 产生了无穷大的百分比误差。更隐蔽的问题是，另一个产品的实际销量是 0.5 和 1.5 之间波动，MAPE 也在 50%~150% 之间——不是因为预测差，而是因为分母太小。所以请不要在间歇性需求数据上使用 MAPE！改用 MASE 或 MAE。
-        </div>
-
-        <p><strong>MASE（Mean Absolute Scaled Error）</strong>由 Rob Hyndman 提出，它把 MAE 除以一个"朴素预测"（naive forecast）的 MAE。朴素预测就是 Ŷ_t = Y_{t-1}（用上一期的值作为预测）。如果 MASE < 1，说明你的模型比朴素预测好；如果 MASE > 1，说明你不如简单用上一期值来预测。MASE 解决了 MAPE 的分母为零问题，也支持跨序列比较。</p>
-
-        <h3>14.4 预测包络与 backtesting</h3>
-
-        <p><strong>预测包络（Forecast Envelope）</strong>是把不同步长的预测误差画在一起的工具。它的做法是：</p>
-
-        <ol>
-            <li>在训练集上拟合模型</li>
-            <li>预测未来 h 期</li>
-            <li>当新的观测到来时，记录预测误差</li>
-            <li>滚动窗口重复上述过程，累积每个步长上的误差分布</li>
-        </ol>
-
-        <p>通过预测包络，你可以回答："这个模型在 3 个月后的预测，通常偏差多大？"而不是笼统地说"平均误差 10%"。</p>
-
-        <p><strong>Backtesting（回测）</strong>是评估预测模型最可靠的方法之一。它的基本思路是模拟历史——每次只用"到当前时刻为止"的数据做预测，然后与真实值比较：</p>
-
-        <pre><code>import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="description" content="时间序列预测与评估：条件期望预测、多步递推、预测误差方差与区间、MAE/RMSE/MAPE/MASE 指标及滚动起点回测。"><title>预测与评估 · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内目录"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a><a href="14.html" aria-current="page">14　预测与评估</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#conditional">01 · 条件期望与最小均方误差</a><a href="#recursion">02 · 多步预测的递推</a><a href="#interval">03 · 预测误差方差与区间</a><a href="#metrics">04 · 评估指标</a><a href="#backtest">05 · 滚动起点回测</a><a href="#caveats">06 · 局限与组合预测</a><a href="#experiment">07 · Python：滚动回测</a><a href="#wrap">08 · 与波动率建模的衔接</a></div><div class="separ"></div><a href="../index.html#catalog">全部课程 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 14 / 28 · FORECASTING</p><h1>预测与评估：从条件期望到前向回测</h1><p class="dek">预测的产出不是一个数字，而是一个分布。本章讲清条件期望为何是最小均方误差预测、多步递推如何把未来创新取零、预测区间为何收敛或发散，以及怎样用滚动起点回测诚实地评估。</p><div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 边界与诊断</div><p>诊断通过只说明模型与假设不矛盾，真正的问题始终是：<strong>它能不能预测未来，以及预测有多不确定</strong>。这一章把预测拆成点预测、区间与评估三件事，并强调评估必须模拟真实的时间顺序。</p><p>先纠正一个误解：<strong>“样本内拟合好”几乎不能说明预测能力</strong>。阶数越高越能贴合历史，却更容易在未见数据上失效。判断标准只有一个：在最接近部署方式的前向评估中，它是否不劣于朴素基准。</p></header>
+<section id="conditional" aria-labelledby="conditional-head"><h2 id="conditional-head">01 · 条件期望与最小均方误差</h2><p>在时刻 T 拥有信息集 <code>ℐ_T</code>（过去观测与由此估计的创新），对未来 <code>y_{T+h}</code> 的<strong>点预测取条件期望</strong>。在平方损失下，条件期望恰好是最小均方误差预测——这是它的定义性质，而非某种近似。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="条件期望点预测"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="点预测等于条件期望 E[y_{T+h} | I_T]"><mrow><msub><mover><mi>y</mi><mo>^</mo></mover><mrow><mi>T</mi><mo>+</mo><mi>h</mi><mo>|</mo><mi>T</mi></mrow></msub><mo>=</mo><mi>E</mi><mo>[</mo><msub><mi>y</mi><mrow><mi>T</mi><mo>+</mo><mi>h</mi></mrow></msub><mo>|</mo><msub><mi>ℐ</mi><mi>T</mi></msub><mo>]</mo></mrow></math><div class="formula-note">平方损失下条件期望最小化 E[(y_{T+h}−f)²]；这是“均方”意义的最优，不代表在绝对值损失或非对称损失下也最优。</div></div><p>这一步把“预测”从工程问题变成概率问题：我们不是在猜一个隐藏的数字，而是在给定信息下求一个条件分布的均值。</p></section>
+<section id="recursion" aria-labelledby="recursion-head"><h2 id="recursion-head">02 · 多步预测的递推</h2><p>一步预测中，等式右边的历史观测与估计创新都是已知的，可直接计算。两步及以后，未知的未来观测用其预测值代入，<strong>未来创新取条件期望为零</strong>（因为模型假设创新不可预测且均值为零）。MA 的作用在 q 步后耗尽，之后只剩 AR 反馈与常数项。</p><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="多步预测误差方差"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="h 步预测误差方差为 σ² 乘以冲击响应平方和"><mrow><mi>Var</mi><mo>(</mo><msub><mi>e</mi><mrow><mi>T</mi><mo>+</mo><mi>h</mi><mo>|</mo><mi>T</mi></mrow></msub><mo>)</mo><mo>=</mo><msup><mi>σ</mi><mn>2</mn></msup><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>h</mi><mo>−</mo><mn>1</mn></mrow></munderover><msubsup><mi>ψ</mi><mi>j</mi><mn>2</mn></msubsup></mrow></math><div class="formula-note">误差是未来各期冲击经冲击响应 ψ_j 的累积，故方差是它们的加权平方和。平稳且可逆时 Σψ_j² 收敛（区间趋于固定宽度）；含单位根时不收敛（区间持续变宽）。</div></div><p>要点：<strong>“未来创新的条件期望为零”是模型假设下的结论</strong>，而不是说现实中冲击真的为零。若模型设定错误，这个假设也随之失效。</p></section>
+<section id="interval" aria-labelledby="interval-head"><h2 id="interval-head">03 · 预测误差方差与区间</h2><p>点预测只给了一半信息。在条件正态假设下，h 步的 95% 预测区间约为 <code>ŷ_{T+h|T} ± 1.96·√Var(e_{T+h|T})</code>。区间的关键差异在于是否含单位根。</p><figure><img src="../assets/svg/14-forecast-interval.svg" width="960" height="380" loading="lazy" alt="左图平稳 ARMA 的预测区间宽度收敛到固定值，右图随机游走的预测区间按根号步长持续变宽。"><figcaption>两图使用同一纵轴尺度：平稳 ARMA 的区间宽度随步长收敛到固定值；含一阶差分的随机游走区间按约 <code>√h</code> 持续变宽。<strong>“区间变宽”不是模型变差，而是积分过程固有的不确定性累积。</strong>图为按解析误差方差绘制的教学示意。</figcaption></figure><p>还要注意：报出的区间只反映<strong>模型内</strong>的创新不确定性，不包含参数估计误差与模型设定误差。真实覆盖率往往比名义值差，因此需要用滚动回测检验区间的校准。</p></section>
+<section id="metrics" aria-labelledby="metrics-head"><h2 id="metrics-head">04 · 评估指标</h2><p>没有单一指标能概括“准不准”。选择指标要匹配业务损失，并注意各指标的分母与尺度问题。</p><div class="table-scroll"><table><thead><tr><th scope="col">指标</th><th scope="col">定义</th><th scope="col">特点与风险</th></tr></thead><tbody><tr><td>MAE</td><td>mean of |误差|</td><td>单位与数据一致，易于解释；对大小误差等权</td></tr><tr><td>RMSE</td><td>误差平方均值的平方根</td><td>对大误差惩罚更重；量纲同数据</td></tr><tr><td>MAPE</td><td>mean of |误差/实际值|</td><td>无量纲便于比较；<b>当实际值接近零时分母会爆炸</b></td></tr><tr><td>MASE</td><td>MAE 除以朴素预测的 MAE</td><td>与尺度无关；小于 1 才优于朴素基准</td></tr></tbody></table></div><div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="MASE 的定义"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="MASE 等于 MAE 除以朴素预测的 MAE"><mrow><mi>MASE</mi><mo>=</mo><mfrac><mi>MAE</mi><msub><mi>MAE</mi><mi>naive</mi></msub></mfrac></mrow></math><div class="formula-note">MASE&lt;1 表示该模型在原序列上比朴素预测（如上一期值）平均绝对误差更小。它对尺度不敏感，也避开了 MAPE 的零分母问题。</div></div><figure><img src="../assets/svg/14-error-penalty.svg" width="960" height="380" loading="lazy" alt="绝对误差的惩罚按线性增长，平方误差的惩罚按二次增长，后者在大误差处上升更快。"><figcaption>为什么 RMSE 更在意大误差：绝对误差按线性赋权（青），平方误差按二次赋权（橙），在同一误差尺度下后者在大误差处上升更快。图为惩罚增长形状的示意，纵轴已各自归一。</figcaption></figure><p>特别提醒：<strong>不要在含零值或间歇性需求的序列上用 MAPE</strong>——分母接近零时百分比误差会失去意义。这类情形宜用 MASE、MAE 或对尺度不敏感的指标。</p></section>
+<section id="backtest" aria-labelledby="backtest-head"><h2 id="backtest-head">05 · 滚动起点回测</h2><p>前向回测（rolling-origin / backtesting）模拟真实部署：每次只用截止到当前的数据拟合，预测下一期，再滚动前进。这样得到的误差分布才接近部署时能遇到的情形。</p><figure><img src="../assets/svg/14-backtest.svg" width="960" height="380" loading="lazy" alt="三轮回测示意：训练窗口沿时间向右滑动，每轮只在当前时刻后预测一期。"><figcaption>滚动起点回测示意：训练窗口（绿）每轮前移，仅用“当前”之前的信息预测下一期（橙点）。<strong>窗口可以是固定长度（sliding）或不断增长（expanding）</strong>，两者回答的问题不同，报告时应说明。图为流程示意。</figcaption></figure><p>回测时需要固定几件事：预测起点如何选、窗口是滑动还是扩张、是否在每轮重新估计参数、以及只评估排除了多少热身期。含糊不清的回测结果无法复现，也无法与别的方法公平比较。</p></section>
+<section id="caveats" aria-labelledby="caveats-head"><h2 id="caveats-head">06 · 局限与组合预测</h2><ul><li><strong>结构突变：</strong>如果生成过程在预测期内改变（政策调整、需求模式切换），基于历史关系的模型会失效，且残差诊断事前很难发现。</li><li><strong>远步长本质不确定：</strong>区间变宽是信息限制，不是模型缺陷；“截得很窄的区间”往往是过度自信而非精准。</li><li><strong>组合往往更稳健：</strong>多个模型取加权平均（ensemble）通常比单一模型稳定，这也是预测竞赛中组合方案的常见表现。</li></ul><p>这些局限的共同含义是：<strong>预测应带着区间和不确定性一起交付</strong>，而不是只给一条曲线。</p></section>
+<section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">07 · Python：滚动一步回测</h2><p>下面用真实的 ARMA(1,1) 生成序列，从第 200 期开始做滚动一步预测，并与朴素预测（上一期值）比较。只依赖 numpy 与 statsmodels。</p><pre tabindex="0"><code>import numpy as np
 from statsmodels.tsa.arima.model import ARIMA
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-# 生成模拟数据
-np.random.seed(42)
-n = 300
-Y = np.zeros(n)
-eps = np.random.normal(0, 1, n)
+rng = np.random.default_rng(14)
+n, phi, theta = 300, 0.7, 0.3
+e = rng.standard_normal(n)
+y = np.zeros(n)
 for t in range(1, n):
-    Y[t] = 0.7*Y[t-1] + eps[t] + 0.3*eps[t-1]
+    y[t] = phi * y[t-1] + e[t] + theta * e[t-1]
 
-# 回测：滚动预测
 train_size = 200
-test_size = n - train_size
+preds = []
+for i in range(train_size, n):            # 每轮只用 y[:i]
+    fit = ARIMA(y[:i], order=(1, 0, 1), trend=&quot;c&quot;).fit()
+    preds.append(fit.forecast(steps=1)[0])
+preds = np.array(preds)
+actual = y[train_size:]
 
-predictions = []
-actuals = Y[train_size:]
-
-for i in range(test_size):
-    # 每次使用到当前为止的所有数据
-    train_data = Y[:train_size + i]
-
-    # 拟合模型
-    model = ARIMA(train_data, order=(1, 0, 1), trend='c')
-    result = model.fit()
-
-    # 预测下一步
-    forecast = result.forecast(steps=1)
-    predictions.append(forecast.iloc[0])
-
-# 评估
-predictions = np.array(predictions)
-mae = mean_absolute_error(actuals, predictions)
-rmse = np.sqrt(mean_squared_error(actuals, predictions))
-
-# 也计算朴素预测的 MAE 作为基准
-naive_pred = Y[train_size-1:-1]
-mae_naive = mean_absolute_error(actuals, naive_pred)
-mase = mae / mae_naive
-
-print(f"MAE:  {mae:.3f}")
-print(f"RMSE: {rmse:.3f}")
-print(f"MASE: {mase:.3f} (基准朴素 MAE={mae_naive:.3f})")
-
-# 画预测 vs 真实
-plt.figure(figsize=(12, 5))
-plt.plot(np.arange(train_size, n), actuals, 'b-', label='真实值')
-plt.plot(np.arange(train_size, n), predictions, 'r--', label='预测值')
-plt.legend()
-plt.title('回测结果：滚动一步预测')
-plt.show()</code></pre>
-
-        <h3>14.5 预测的"黑暗面"</h3>
-
-        <p>作为一个负责任的"老师"，我必须告诉你们：预测不是魔法。即使你严格按照所有步骤做了，预测仍然可能在以下情况失效：</p>
-
-        <ul>
-            <li><strong>结构突变（Structural Break）：</strong>如果数据生成过程在预测期内发生了变化（比如疫情爆发、政策调整），基于历史数据的模型必然失效。这被称为"卢卡斯批判"（Lucas Critique）在时间序列中的体现。</li>
-            <li><strong>预测越远，不确定性越大：</strong>这不是模型问题，而是信息问题——未来本来就是不确定的。一个"敢给很窄的预测区间"的模型往往不是好模型，而是过度自信的模型。</li>
-            <li><strong>组合预测可能优于单一模型：</strong>研究反复表明，多个模型的预测取加权平均（Model Averaging / Ensemble）往往比任何一个单一模型更稳定。这就是为什么在大型预测竞赛中，冠军方案永远是多个模型的组合。</li>
-        </ul>
-
-        <div class="highlight">
-            <strong>ARMA 家族系列总结：</strong>从第 8 章到第 14 章，我们走完了一个完整的旅程——从最基础的 AR 模型开始，了解了 MA 模型的冲击捕捉能力，学会了如何用 ARMA 两者结合，扩展出差分处理趋势（ARIMA），加入季节性成分（SARIMA），最后掌握了完整的建模诊断流程和预测评估方法。这 7 章的内容构成了经典时间序列分析的核心骨架。当你今后面对任何一个时间序列预测问题时，这套方法论都将是你的第一个武器。当然，经典方法不是终点——第 15 章我们将进入波动率建模（ARCH/GARCH），处理金融时间序列中特有的"方差时变"问题。
-        </div>
-
-        <div class="footer-nav">
-            <a href="13.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="15.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+mae = np.mean(np.abs(actual - preds))
+rmse = np.sqrt(np.mean((actual - preds) ** 2))
+naive = y[train_size-1:-1]                  # 上一期值
+mase = mae / np.mean(np.abs(actual - naive))
+print(&quot;MAE %.3f  RMSE %.3f  MASE %.3f&quot; % (mae, rmse, mase))
+assert len(preds) == len(actual) == 100</code></pre><p>在本例中 MASE 略小于 1，说明模型不劣于朴素基准，但优势很小。<strong>这只是一个合成样本上的结果，不应当作真实数据的绩效承诺</strong>；真实项目应同时报告多个起点、多步长与基准方法。</p></section>
+<section id="wrap" aria-labelledby="wrap-head"><h2 id="wrap-head">08 · 与波动率建模的衔接</h2><p>到目前为止我们都假设创新方差 σ² 恒定。但在金融收益等序列中，方差会成簇变化：大波动后跟随大波动。这意味着条件方差时刻在变，固定区间的假设不再成立。下一章的 ARCH / GARCH 正是为这种“方差时变”而设计。</p><div class="thought"><strong>一次可用的预测交付需要回答：</strong>评估是否按时间顺序、只用过去信息？训练/测试如何划分、参数是否重估？报告了哪几个指标、与哪个朴素基准比？预测区间是否经过覆盖率检验？</div></section>
+<section id="references"><h2>进一步阅读与技术核对</h2><p>引用指向预测定义、指标与接口的官方资料。</p><ol class="refs"><li><a href="https://otexts.com/fpp3/arima-forecasting.html" target="_blank" rel="noopener noreferrer">FPP3：ARIMA 预测与预测区间</a></li><li><a href="https://otexts.com/fpp3/accuracy.html" target="_blank" rel="noopener noreferrer">FPP3：预测准确度指标（含 MASE）</a></li><li><a href="https://otexts.com/fpp3/tscv.html" target="_blank" rel="noopener noreferrer">FPP3：时间序列交叉验证与滚动起点</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html" target="_blank" rel="noopener noreferrer">statsmodels：ARIMA 预测接口</a></li></ol></section><nav class="bottom-nav" aria-label="章节导航"><a href="13.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="15.html">下一章 →</a></nav></article></main></div></body></html>
