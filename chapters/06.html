@@ -1,189 +1,20 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第6章 时间序列回归</title>
-    <link rel="stylesheet" href="theme.css">
-</head>
-<body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html" class="active">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="回归系数有意义，需要怎样的统计假设？从 OLS 的均值结构，到自相关误差、Durbin–Watson / Breusch–Godfrey、HAC 与动态回归。"><meta name="color-scheme" content="light"><title>时间序列回归：解释、相关误差与伪回归 · 时间序列分析</title><link rel="stylesheet" href="../assets/css/article.css"><script src="../assets/js/interactive.js" defer></script></head><body><a class="skip" href="#content">跳转至正文</a><div class="page-shell"><nav class="aside" aria-label="课程与章内导航"><strong><a href="../index.html">时间序列分析</a></strong><div class="separ"></div><div class="toc-links"><a href="01.html">01　序列与验证</a><a href="02.html">02　趋势与分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　相关与诊断</a><a href="05.html">05　指数平滑</a><a href="06.html" aria-current="page">06　时间序列回归</a><a href="07.html">07　频谱分析</a><a href="08.html">08　自回归 AR</a><a href="09.html">09　移动平均 MA</a><a href="10.html">10　ARMA 模型</a></div><div class="separ"></div><strong>本章路线</strong><div class="toc-links"><a href="#setup">01 · 线性回归模型在时间维度上怎样解释</a><a href="#spurious">02 · 独立随机游走为什么会产生伪回归</a><a href="#diagnose">03 · Durbin–Watson 测量了什么</a><a href="#remedies">04 · 相关误差该怎样修正：HAC、GLS 或动态模型</a><a href="#season">05 · 回归怎样加入时间趋势与季节性</a><a href="#experiment">06 · Python：比较普通与 HAC 标准误，诊断残差</a><a href="#interactive">07 · 改变残差记忆系数，观察理论相关衰减</a><a href="#check">08 · 用于真实项目的审查顺序</a></div><div class="separ"></div><a href="../index.html#catalog">浏览全部 28 章 →</a></nav><main id="content"><article class="article"><header><p class="eyebrow">CHAPTER 06 / 28 · STATISTICAL MODELLING</p><h1>时间序列回归：解释、相关误差与伪回归</h1><p class="dek">回归系数有意义，需要怎样的统计假设？从 OLS 的均值结构，到自相关误差、Durbin–Watson / Breusch–Godfrey、HAC 与动态回归。</p><div class="meta"><span>理论推导 · 误差约定 · 原创结构图 · 可复现实验</span></div><p>某家门店销售量随气温上涨而增加。一个普通回归可以描述这种关系，但如果连续热天让相邻日销量一起偏高，回归残差可能也带有时间结构。此时<strong>回归可以仍是有用的预测工具，但对系数的标准误、预测区间和因果解释都必须重新检查</strong>。</p><p>这一章将三个问题严格分开：解释变量能说明多少条件均值？剩余误差是否具有自相关？系数与预测是否可作为因果效应或未来信息使用？</p></header><section id="setup" aria-labelledby="setup-head"><h2 id="setup-head">01 · 线性回归模型在时间维度上怎样解释</h2><p>回归模型把响应分成可由解释变量描述的部分和未解释误差。符号中 <code>t</code> 是观察时点，<code>xₜ</code> 可以是温度、折扣、节假日虚拟变量、趋势变量等。在真实预测时，每个 <code>xₜ</code> 必须是当时确实可得的特征。</p><div class="mathbox" role="group" aria-label="带时标的回归模型" tabindex="0"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="带时标的回归模型"><mrow><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>x</mi><mi>t</mi></msub><mo>+</mo><msub><mi>u</mi><mi>t</mi></msub></mrow></math><div class="formula-note">β₁ 是在此规格和假设下、其他条件不变时与 xₜ 相关的条件均值变化，并非自动成立的干预因果效应。</div></div><figure><img src="../assets/svg/06-regression-errors.svg" alt="时间回归可能较好解释系统性均值，但仍留下连续正偏、连续负偏的相关残差。" width="960" height="380" loading="lazy"><figcaption>时间回归可能较好解释系统性均值，但仍留下连续正偏、连续负偏的相关残差。</figcaption></figure><p>OLS 最小化观测残差平方和。若解释变量严格外生等条件成立，即使误差存在自相关，OLS 也不必然有偏，但常规独立同分布标准误和传统 t 检验往往不再可靠。若解释变量与误差相关或存在反馈，问题会更严重，需要更合适的动态规格或识别策略。</p></section><section id="spurious" aria-labelledby="spurious-head"><h2 id="spurious-head">02 · 独立随机游走为什么会产生伪回归</h2><p>两个互相独立的 I(1) 随机游走，即使真实生成冲击没有任何关联，在有限样本中也可能恰好共同上升或下降。把它们的<strong>水平</strong>直接回归，常规平稳回归的渐近分布论证失效，高 R² 或看似显著的系数可能误导。</p><figure><img src="../assets/svg/06-spurious.svg" alt="概念图强调累积趋势造成的形状相似，不代表两条示意曲线本身已经完成可重复统计检验。" width="960" height="380" loading="lazy"><figcaption>概念图强调累积趋势造成的形状相似，不代表两条示意曲线本身已经完成可重复统计检验。</figcaption></figure><div class="table-scroll"><table><thead><tr><th scope="col">场景</th><th scope="col">风险</th><th scope="col">更合适的检查</th></tr></thead><tbody><tr><td>共同确定性趋势</td><td>遗漏时间结构导致残差关联</td><td>显式趋势、季节或变点</td></tr><tr><td>独立的单位根随机游走</td><td>水平回归的非标准推断</td><td>单位根和协整检查，合理差分</td></tr><tr><td>存在协整的 I(1) 序列</td><td>盲目差分可能丢失长期均衡</td><td>协整 / 误差修正框架</td></tr><tr><td>真实反馈或遗漏变量</td><td>相关并不等于因果</td><td>设计、外生性与识别假设</td></tr></tbody></table></div><p>“所有非平稳序列都不能回归”同样错误。如果多个 I(1) 序列协整，其稳定线性组合可能支持长期关系；对应推断仍须使用协整相关方法，不能复用普通 OLS 的一切结论。</p></section><section id="diagnose" aria-labelledby="diagnose-head"><h2 id="diagnose-head">03 · Durbin–Watson 测量了什么</h2><p>Durbin–Watson（DW）统计量比较相邻残差的差值平方与残差本身平方。正的一级自相关通常把统计量推向 0；无一级相关时，统计量常接近 2；负相关通常把它推向 4。</p><div class="mathbox" role="group" aria-label="Durbin–Watson 统计量" tabindex="0"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="Durbin–Watson 统计量"><mrow><mi>d</mi><mo>=</mo><mfrac><mrow><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>2</mn></mrow><mi>T</mi></munderover><msup><mrow><mo>(</mo><msub><mi>e</mi><mi>t</mi></msub><mo>−</mo><msub><mi>e</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>)</mo></mrow><mn>2</mn></msup></mrow><mrow><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>T</mi></munderover><msubsup><mi>e</mi><mi>t</mi><mn>2</mn></msubsup></mrow></mfrac></mrow></math><div class="formula-note">eₜ 为模型残差；常用 d≈2(1−r₁) 是近似关系，不是通用检验临界值公式。</div></div><p>DW 不是“靠近 2 就一定通过”的万能判定。若回归中包含因变量的滞后项，经典 DW 检验假设可能不适用；对于更一般的滞后相关，<strong>Breusch–Godfrey（BG）</strong> 的辅助回归方法更灵活，也可以检查多个滞后。</p></section><section id="remedies" aria-labelledby="remedies-head"><h2 id="remedies-head">04 · 相关误差该怎样修正：HAC、GLS 或动态模型</h2><p>三类工具解决的问题不同。HAC（Newey–West 型）稳健协方差<strong>主要调整推断所用的方差估计</strong>，不改变 OLS 点估计，也不能自动修复内生性或让预测更准确。GLS/GLSAR 用显式误差协方差结构重新加权估计；动态回归则可以把 ARIMA 误差过程纳入同一个预测模型。</p><div class="table-scroll"><table><thead><tr><th scope="col">方法</th><th scope="col">它改变什么</th><th scope="col">必须认识的局限</th></tr></thead><tbody><tr><td>HAC / Newey–West</td><td>系数的稳健协方差及标准误</td><td>带宽与数据条件重要；不修复内生性</td></tr><tr><td>Cochrane–Orcutt / Prais–Winsten</td><td>假设 AR(1) 误差、进行可行 GLS 变换</td><td>误差规格错会导致低效或偏误；两种方法对首期处理不同</td></tr><tr><td>回归 + ARIMA 误差</td><td>联合建模回归均值与剩余序列依赖</td><td>未来外生变量需要已知或预测</td></tr><tr><td>更合理的特征与滞后</td><td>改善均值规格和遗漏结构</td><td>注意泄漏及样本外稳定性</td></tr></tbody></table></div><figure><img src="../assets/svg/06-dynamic.svg" alt="在动态回归中，未来条件均值由外生变量预测部分及误差过程预测部分共同构成。" width="960" height="380" loading="lazy"><figcaption>在动态回归中，未来条件均值由外生变量预测部分及误差过程预测部分共同构成。</figcaption></figure><div class="mathbox" role="group" aria-label="带 AR(1) 误差的回归" tabindex="0"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="带 AR(1) 误差的回归"><mrow><mtable columnalign="left"><mtr><mtd><msub><mi>y</mi><mi>t</mi></msub><mo>=</mo><msub><mi>β</mi><mn>0</mn></msub><mo>+</mo><msub><mi>β</mi><mn>1</mn></msub><msub><mi>x</mi><mi>t</mi></msub><mo>+</mo><msub><mi>u</mi><mi>t</mi></msub></mtd></mtr><mtr><mtd><msub><mi>u</mi><mi>t</mi></msub><mo>=</mo><mi>φ</mi><msub><mi>u</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><msub><mi>ε</mi><mi>t</mi></msub></mtd></mtr></mtable></mrow></math><div class="formula-note">需要 |φ|<1 以及创新的适当条件，才能把 uₜ 解释为一个平稳 AR(1) 误差过程。</div></div></section><section id="season" aria-labelledby="season-head"><h2 id="season-head">05 · 回归怎样加入时间趋势与季节性</h2><p>对于月度业务数据，可加入 11 个虚拟变量来表示相对基准月份的均值偏移，或者用正余弦 Fourier 项描述光滑、重复的季节模式。如果包含截距又加入 12 个互斥月度哑变量，会产生完全共线性（dummy-variable trap），必须去掉一个基准水平或调整参数化。</p><p>有确定性趋势并不等于有单位根；一条随时间上升的条件均值可以通过显式趋势回归建模。对不规则日期、变点与节假日，应设计独立的外生特征；对相邻残差中的自相关，还需单独诊断。</p><div class="callout"><strong>预测信息边界：</strong>“明天的气温”如果在今天尚不可知，就不能直接用明天实际气温进行预测并报告真实场景的效果。应使用当时可得的天气预报，或给出未来气温情景，并承认外生预测的不确定性。</div></section><section id="experiment" aria-labelledby="experiment-head"><h2 id="experiment-head">06 · Python：比较普通与 HAC 标准误，诊断残差</h2><p>下面生成含 AR(1) 误差的合成回归数据，展示 DW/BG 检验与 HAC 标准误。真实数值受固定随机种子的某一次样本影响，代码仅断言基本结构，不把 p 值写成预先必然的结果。</p><pre tabindex="0"><code>import numpy as np
+import statsmodels.api as sm
+from statsmodels.stats.stattools import durbin_watson
+from statsmodels.stats.diagnostic import acorr_breusch_godfrey
 
-        <h2>第6章 时间序列回归</h2>
-
-        <p>大家好，我是你们的讲师。如果你学过计量经济学或机器学习，你一定对线性回归不陌生。<code>Y = β₀ + β₁X₁ + ... + ε</code>——这个公式太经典了。但把回归直接用在时间序列上，会有一个巨大的陷阱，甚至可以让你得出完全错误的结论。</p>
-
-        <p>想象一下：你把中国过去20年的GDP和某个随机生成的随机游走序列做回归，结果发现 p 值小于 0.001，R² 高达 0.85。这是不是说明这个随机变量能"解释"中国经济增长？当然不是。这就是著名的"伪回归"（Spurious Regression）问题——两个毫无关系的非平稳序列，仅仅因为都随时间增长，就会表现出虚假的相关性。</p>
-
-        <p>1993年《经济学杂志》上有一篇经典文章，模拟了完全独立的随机游走变量之间的回归，结果在5%的显著性水平下有超过70%的情况都"显著"地拒绝了原假设。换句话说，<strong>用非平稳数据做回归，显著性检验毫无意义</strong>。</p>
-
-        <p>我自己就踩过这个坑。早年做宏观因子分析时，我把 CPI 和 M2 货币供应量直接回归，得到了一个漂亮的 R²，兴奋地拿给导师看。导师只看了一眼说："把两个序列的差分画出来看看。"我照做，结果差分后的 R² 几乎是 0。那一刻我才真正理解了伪回归的含义。</p>
-
-        <h3>6.1 OLS 回归在时间序列中的应用</h3>
-
-        <p>也不是说时间序列不能用回归。在满足一定条件的情况下，回归在时间序列中非常好用。最常见的两种场景是：</p>
-
-        <p><strong>1. 确定性趋势模型</strong></p>
-
-        <pre><code>Y_t = β₀ + β₁ * t + ε_t</code></pre>
-
-        <p>把时间 t 作为解释变量，拟合线性趋势。这种方法适合描述有稳定增长的业务指标。比如某APP的日活用户数可以用时间趋势来近似。</p>
-
-        <p><strong>2. 带季节性虚拟变量</strong></p>
-
-        <pre><code>Y_t = β₀ + β₁ * t + γ₂ * D₂ + γ₃ * D₃ + γ₄ * D₄ + ε_t</code></pre>
-
-        <p>其中 D₂、D₃、D₄ 是季度虚拟变量（以 Q1 为基准），这样可以同时捕捉趋势和季节效应。这种方法在经济数据中非常常用，比如用回归做季度调整。</p>
-
-        <h3>6.2 伪回归的根源</h3>
-
-        <p>伪回归发生的根本原因是：<strong>当两个序列都是非平稳时，OLS 估计量不再具有一致性，t 统计量和 F 统计量的分布完全偏离了标准分布</strong>。简单说——你查 t 分布表得到的 p 值是错的。</p>
-
-        <p>伪回归的几个典型特征：</p>
-
-        <ul>
-            <li>R² 异常高（通常 &gt; 0.8）</li>
-            <li>Durbin-Watson 统计量很低（&lt; 0.5）</li>
-            <li>回归系数的 t 统计量都很显著</li>
-            <li>但残差有明显的自相关</li>
-        </ul>
-
-        <div class="tip">
-            <strong>快速识别伪回归：</strong>如果回归的 R² 大于 Durbin-Watson 统计量，你很可能遇到了伪回归！这个经验法则叫"Granger-Newbold 准则"，在很多实证论文中被引用。
-        </div>
-
-        <h3>6.3 Durbin-Watson 检验</h3>
-
-        <p>Durbin-Watson 检验（简称 DW 检验）专门用来检测回归残差的一阶自相关：</p>
-
-        <pre><code>DW = Σ(ε_t - ε_{t-1})² / Σ(ε_t)²</code></pre>
-
-        <p>DW 值的范围是 0 到 4：</p>
-
-        <ul>
-            <li><strong>DW ≈ 2</strong>——残差无自相关（理想状态）</li>
-            <li><strong>DW &lt; 2</strong>——正自相关（残差中还有结构）</li>
-            <li><strong>DW &gt; 2</strong>——负自相关（较少见）</li>
-            <li><strong>DW 接近 0</strong>——严重正自相关，伪回归嫌疑极大</li>
-        </ul>
-
-        <p>每个 DW 值都有一个对应的 p 值范围，实际使用中查表即得。在 Python 中可以直接调用 <code>statsmodels</code> 计算。</p>
-
-        <h3>6.4 Cochrane-Orcutt 修正</h3>
-
-        <p>如果发现残差存在自相关，最简单的修正方法是 Cochrane-Orcutt 估计。它的思路分两步：</p>
-
-        <ol>
-            <li>先用 OLS 估计回归，计算残差，然后估计残差的一阶自相关系数 ρ</li>
-            <li>用 ρ 对原始变量做"准差分"变换：<code>Y*_t = Y_t - ρ * Y_{t-1}</code>，<code>X*_t = X_t - ρ * X_{t-1}</code></li>
-            <li>在变换后的数据上重新做 OLS</li>
-        </ol>
-
-        <p>这个方法的直觉是：先把残差中的自相关"剥离"掉，再用干净的数据做回归。</p>
-
-        <pre><code>import numpy as np
-import pandas as pd
-from statsmodels.regression.linear_model import OLS
-from statsmodels.tsa.stattools import acf
-
-# 假设 y 和 x 是两个 Series
-# 第一步：OLS 回归
-model = OLS(y, x)
-result = model.fit()
-residuals = result.resid
-
-# 第二步：估计残差的一阶自相关系数
-rho = acf(residuals, nlags=1)[1]
-
-# 第三步：准差分变换
-y_star = y[1:] - rho * y[:-1].values
-x_star = x[1:] - rho * x[:-1].values
-
-# 第四步：重新回归
-model_corrected = OLS(y_star, x_star)
-result_corrected = model_corrected.fit()
-print(result_corrected.summary())</code></pre>
-
-        <h3>6.5 在回归中包含趋势和季节</h3>
-
-        <p>一种更简单的避免伪回归的策略是：在回归中显式包含趋势项和季节项，从而使残差变得平稳。</p>
-
-        <table>
-            <tr><th>成分</th><th>实现方式</th><th>示例公式</th></tr>
-            <tr><td>线性趋势</td><td>添加时间索引项 t</td><td>Y = β₀ + β₁t + ...</td></tr>
-            <tr><td>二次趋势</td><td>添加 t²</td><td>Y = β₀ + β₁t + β₂t² + ...</td></tr>
-            <tr><td>季节虚拟变量</td><td>为 m 个季节创建 m-1 个 0/1 变量</td><td>Y = ... + γ₂D₂ + γ₃D₃ + γ₄D₄</td></tr>
-            <tr><td>傅里叶项</td><td>用 sin/cos 捕捉平滑季节</td><td>Y = ... + Σ(α sin + β cos)</td></tr>
-        </table>
-
-        <p>傅里叶项（Fourier terms）对季节性特别长的场景很有效。比如预测每日数据，如果用虚拟变量需要 364 个，而用傅里叶项可能 5~10 对 sin/cos 就能捕捉到年度模式。这在后面的 Prophet 模型中会大量用到。</p>
-
-        <div class="warning">
-            <strong>实践中的忠告：</strong>在时间序列回归中，永远记住三步曲：</p>
-            <ol>
-                <li>回归前：检验每个变量的平稳性（ADF + KPSS）</li>
-                <li>回归后：检查残差是否白噪声（DW 检验 + Ljung-Box）</li>
-                <li>如果不满足：要么差分，要么加入趋势项，要么用 Cochrane-Orcutt 修正</li>
-            </ol>
-            <p>这三步走完，你的回归结果才有可信度。
-        </div>
-
-        <h3>6.6 什么时候回归优于其他方法</h3>
-
-        <p>时间序列回归在以下场景特别有用：</p>
-
-        <ul>
-            <li>你需要<strong>解释</strong>而不是仅仅预测——回归系数有明确的经济含义</li>
-            <li>有多个外生变量（external regressors）——比如用天气、节假日、促销活动来解释销售额</li>
-            <li>需要做政策评估或因果推断——比如"广告投入增加10%带来多少销售额提升"</li>
-        </ul>
-
-        <p>但如果你的目标纯粹是预测，而且数据中主要的结构是自相关和季节性，后面要学的 ARIMA 模型通常比回归方法更高效。</p>
-
-        <p>总结一下：时间序列回归是一把双刃剑——用好了可以解释变量之间的关系，用不好就会被伪回归欺骗。关键就是记住三条：平稳性检查、残差诊断、适当修正。下一章我们将彻底转换视角，从时域跨入频域，用频谱分析来发现时间序列中隐藏的周期性信号。你会看到，同样的数据在"频率"这个视角下，可以呈现出完全不同的面貌。</p>
-
-        <div class="footer-nav">
-            <a href="05.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="07.html">下一章 →</a>
-        </div>
-    </div>
-</div>
-</div>
-</body>
-</html>
+rng = np.random.default_rng(2026)
+n = 240
+x = rng.normal(size=n)
+u = np.zeros(n)
+for t in range(1, n):
+    u[t] = 0.7*u[t-1] + rng.normal(scale=0.8)
+y = 4 + 1.5*x + u
+X = sm.add_constant(x)
+ols = sm.OLS(y, X).fit()
+hac = ols.get_robustcov_results(cov_type=&quot;HAC&quot;, maxlags=8)
+print(&quot;OLS beta:&quot;, ols.params[1], &quot;OLS SE:&quot;, ols.bse[1])
+print(&quot;HAC beta:&quot;, hac.params[1], &quot;HAC SE:&quot;, hac.bse[1])
+print(&quot;DW:&quot;, durbin_watson(ols.resid))
+print(&quot;BG p:&quot;, acorr_breusch_godfrey(ols, nlags=4)[1])
+assert np.allclose(ols.params, hac.params)</code></pre><p>HAC 并不是将时间依赖“从残差中消除”。示例中的 <code>x</code> 独立于误差；如果改为由过去 <code>y</code> 或未观察冲击决定的自变量，应重新讨论严格外生性，不能指望 HAC 自动纠正参数。</p></section><section id="interactive" aria-labelledby="interactive-head"><h2 id="interactive-head">07 · 改变残差记忆系数，观察理论相关衰减</h2><p>对于平稳 AR(1) 误差 <code>uₜ=ρuₜ₋₁+εₜ</code>，滞后 k 的理论相关为 <code>ρᵏ</code>。同样的回归系数，残差结构可以显著不同，因而需要不同的误差建模或标准误处理。</p><div class="concept-lab" data-lab="rho" data-default="0.65"><label for="rho-param">设定残差 AR(1) 系数 ρ = <output data-lab-output for="rho-param">0.65</output></label><input id="rho-param" data-lab-input type="range" min="-0.90" max="0.90" step="0.05" value="0.65"><div class="lab-explainer" data-lab-description aria-live="polite">示例 ρ=0.65；正相关的影响逐期衰减。</div><div class="mini-bars" data-lab-bars aria-label="示例图表"></div><p class="formula-note">交互图为明确假设下的理论或合成演示，不表示对任何真实数据的参数估计。</p></div><p>注意这不是让回归斜率变为因果效应的旋钮。它只改变合成误差的理论相关结构。</p></section><section id="check" aria-labelledby="check-head"><h2 id="check-head">08 · 用于真实项目的审查顺序</h2><ol><li>明确预测目标、未来外生变量何时可得，以及系数是否用于因果解释。</li><li>检查解释变量的时间对齐、遗漏趋势、季节与结构断点。</li><li>观察原始响应及 OLS 残差，结合 DW/BG 与残差 ACF，不仅看 p 值。</li><li>为推断选择合适的误差协方差处理；为预测检验动态误差规格是否有样本外增益。</li><li>使用相同的前向切分，将预测与季节朴素或其他简单基线比较。</li></ol><div class="thought"><strong>记住：</strong>回归的拟合优度、系数的统计显著、预测价值和因果效应，是四个需要不同证据的问题。</div></section><section id="references"><h2>定义与实现的核对来源</h2><p>这些资料用于核对数学条件、参数含义及接口。图示与实验为独立编写的教学材料，不代表外部论文或真实业务效果。</p><ol class="refs"><li><a href="https://otexts.com/fpp3/regression.html" target="_blank" rel="noopener noreferrer">Forecasting: Principles and Practice：时间序列回归与伪回归</a></li><li><a href="https://otexts.com/fpp3/dynamic-regression.html" target="_blank" rel="noopener noreferrer">Forecasting: Principles and Practice：回归结合 ARIMA 误差</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.stats.stattools.durbin_watson.html" target="_blank" rel="noopener noreferrer">statsmodels：Durbin–Watson</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.stats.diagnostic.acorr_breusch_godfrey.html" target="_blank" rel="noopener noreferrer">statsmodels：Breusch–Godfrey 检验</a></li><li><a href="https://www.statsmodels.org/stable/generated/statsmodels.regression.linear_model.GLSAR.html" target="_blank" rel="noopener noreferrer">statsmodels：GLSAR 实现</a></li></ol></section><nav class="bottom-nav" aria-label="章节切换"><a href="05.html">← 上一章</a><a href="../index.html#catalog">课程目录</a><a href="07.html">下一章 →</a></nav></article></main></div></body></html>
