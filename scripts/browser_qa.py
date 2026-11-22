@@ -21,6 +21,14 @@ def main():
                 js_errors = []
                 page.on("pageerror", lambda error: js_errors.append(str(error)))
                 page.goto((ROOT / relative).as_uri(), wait_until="load")
+                # Full-page screenshots do not consistently trigger loading=lazy on
+                # lengthy mobile articles. Force all scientific figures to load and
+                # wait for completion; naturalWidth is checked separately below.
+                page.locator("img").evaluate_all(
+                    "images => images.forEach(img => { img.loading = 'eager'; })")
+                page.wait_for_function(
+                    "() => [...document.images].every(img => img.complete)",
+                    timeout=20000)
                 page.screenshot(path=str(REPORTS / (relative.replace("/", "_").replace(".html", "")
                                                     + f"-{width}.png")), full_page=True)
                 bad = page.evaluate("""() => ({
