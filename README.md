@@ -1,67 +1,61 @@
-# 📈 时间序列分析完全指南
+# 时间序列分析 · 从观测到预测
 
-> 📈 28章 实战体系
+> 28 章中文时间序列课程：概念 → 分解与平稳 → 经典统计模型 → 波动率和多元模型 → 机器学习与部署。
 
-一套完整的 **时间序列分析完全指南** 全中文实战课程体系，共 **28 章**。本课程以 HTML 可视化的形式呈现，从基础原理到工程实践循序渐进，适合系统性学习与复习。
+**站点入口：** https://1998x-stack.github.io/time-series-analysis-tutorial/  （需要 GitHub Pages 已开启；部署状态请在仓库 Actions / Settings → Pages 验证）
 
-## 🚀 快速开始
+首批重构 01–05 章，逐篇补全背景、数学公式、矢量图与可运行示例。其余 23 章保留原内容，待第二轮内容审计；不将其误标为精修完成。
 
-无需安装任何依赖，直接用浏览器打开 `index.html` 即可在线阅读全部章节：
+## 快速阅读
+
+直接打开 `index.html`；也可用本地 HTTP 服务：
 
 ```bash
-open index.html   # macOS
-# 或在浏览器中直接打开 index.html
+python -m http.server 8000
+# 浏览 http://localhost:8000/
+python scripts/check_site.py
 ```
 
-## 📖 章节目录
+无需构建工具即可阅读静态网页。示例中的统计模型代码需要额外安装 `numpy` 和 `statsmodels`：
 
-| # | 章节 | 核心主题 |
-|---|------|----------|
-| 01 | 认识时间序列 | 时序数据定义、时间序列vs截面数据、历史发展(1920sYule→1970sBox-Jenkins→2020s深度学习)、应用场景总览 |
-| 02 | 时序的组成与分解 | 趋势/季节性/循环/残差、加法模型vs乘法模型、STL分解、X11/SEATS季节调整 |
-| 03 | 平稳性 | 严平稳vs弱平稳、ADF检验、KPSS检验、差分与Box-Cox变换 |
-| 04 | 自相关分析 | ACF自相关函数、PACF偏自相关、白噪声与Ljung-Box检验、AIC/BIC信息准则 |
-| 05 | 指数平滑 | 简单指数平滑、Holt线性方法、Holt-Winters季节性、ETS框架 |
-| 06 | 时间序列回归 | 时序上的OLS、虚假回归问题、Durbin-Watson检验、Cochrane-Orcutt修正 |
-| 07 | 频谱分析入门 | 时域vs频域、傅里叶级数、周期图构建与解读、谱泄漏与窗函数 |
-| 08 | 自回归模型(AR) | AR(p)模型、Yule-Walker方程、特征根与平稳性条件、PACF定阶 |
-| 09 | 移动平均模型(MA) | MA(q)模型、可逆性条件、MA与AR的对偶关系、ACF定阶 |
-| 10 | ARMA模型 | ARMA(p,q)、ACF/PACF截断与拖尾、Box-Jenkins方法论、模型简约性原则 |
-| 11 | 差分与ARIMA | 差分阶数d、ARIMA(p,d,q)、单位根、auto.arima算法思想 |
-| 12 | 季节性ARIMA | SARIMA(p,d,q)(P,D,Q)s、季节性差分、季节性ACF/PACF、季节与非季节耦合 |
-| 13 | 建模实践与诊断 | Box-Jenkins完整流程、残差诊断、参数显著性检验、模型简化策略 |
-| 14 | 预测与评估 | 点预测与区间预测、MAE/RMSE/MAPE/MASE、预测包络、回测与前向验证 |
-| 15 | 波动率建模(GARCH) | ARCH模型、GARCH(1,1)、EGARCH/TGARCH、VaR风险价值 |
-| 16 | 多元时间序列(VAR) | VAR模型、Granger因果检验、脉冲响应函数、方差分解 |
-| 17 | 协整与误差修正 | 协整概念、Engle-Granger两步法、Johansen检验、VECM模型 |
-| 18 | 状态空间与卡尔曼滤波 | 状态空间表示、卡尔曼滤波递推、卡尔曼增益、动态线性模型 |
-| 19 | 时序特征工程 | 滞后特征、滚动窗口统计、日历特征与傅里叶项、缺失值与异常检测 |
-| 20 | 树模型与时序预测 | XGBoost/LightGBM/CatBoost、特征重要性、超参数调优、数据泄漏陷阱 |
-| 21 | Prophet与自动预测 | Prophet加法模型、变点检测、Nixtla生态、statsforecast/mlforecast |
-| 22 | 时序交叉验证 | 扩展窗口vs滑动窗口、前向验证、清除与禁运、模型集成 |
-| 23 | 循环神经网络 | RNN/LSTM/GRU、Seq2Seq架构、梯度消失与裁剪、Teacher Forcing |
-| 24 | 卷积与时序 | 1D CNN、TCN膨胀卷积、WaveNet、CNN-LSTM混合架构 |
-| 25 | Transformer与时序 | 自注意力机制、Informer/Autoformer、PatchTST、TFT可解释注意力 |
-| 26 | 基础模型与扩散模型 | TimesFM/Chronos/TimeGPT、零样本预测、CSDI/TS-DiT扩散模型、tokenization策略 |
-| 27 | 生产部署与MLOps | FastAPI/Docker、MLflow模型管理、漂移检测、InfluxDB/TimescaleDB |
-| 28 | 综合实战项目 | 端到端电商预测、基线→统计→ML→DL→集成、全模型对比、Top 10常见错误回顾 |
+```bash
+python -m pip install -r requirements-examples.txt
+```
 
-## 📂 项目结构
+## 首批重构
+
+| 章节 | 核心要点 | 原创说明图 |
+| --- | --- | --- |
+| [01 认识时间序列](chapters/01.html) | 时间索引、数据泄漏、朴素基线 | 顺序与切分 |
+| [02 时序分解](chapters/02.html) | 趋势/季节/剩余、加法/乘法、STL | 分量与振幅 |
+| [03 平稳性](chapters/03.html) | 弱平稳、单位根、ADF/KPSS、差分 | 稳定与漂移 |
+| [04 相关分析](chapters/04.html) | ACF/PACF、白噪声、Ljung–Box、AIC/BIC | 条件关联与理论相关图 |
+| [05 指数平滑](chapters/05.html) | SES、Holt、季节模型、ETS | 权重与 α 对比 |
+
+## 结构
 
 ```text
-time-series-analysis-tutorial/
-├── index.html      # 课程主入口（在线阅读全部章节）
-├── 01.html ~ 28.html   # 各章节正文
-├── courses.json    # 课程元数据（标题/章节/主题）
-└── theme.css       # 统一主题样式
+index.html                  # GitHub Pages 首页
+chapters/01.html~28.html    # 课程正文；01-05 新版，06-28 原文保留
+chapters/theme.css          # 06-28 章原样兼容样式
+assets/css/                 # 独立首页与新版文章的设计系统
+assets/svg/                 # 有语义标签的独立科学图
+assets/js/                  # 渐进增强；无需 JS 也能阅读核心内容
+archive/                    # 第一批被替换的旧章与旧首页快照
+courses.json                # 28 章导航元数据
+01.html~28.html             # 旧 URL 到 chapters/ 的重定向兼容页
+scripts/check_site.py       # 结构、图片、公式与链接校验
+.github/workflows/          # 质量检查及可选 Pages Actions 部署
+AGENTS.md                   # 内容/技术/审校规约
+docs/                       # 架构与证据核对清单
 ```
 
-## ✨ 课程特色
+## 原则
 
-- **全中文实战体系**：面向中文读者，由浅入深，覆盖原理与工程实践
-- **28 章完整内容**：系统化章节编排，形成完整知识闭环
-- **可视化呈现**：HTML 图文并茂，适合快速浏览与重点回顾
-- **即开即用**：无需构建、无需服务器，纯静态页面随开随看
+- 每一篇是能独立阅读的讲解，不使用“本讲义介绍了……”之类缺失上下文的叙述。
+- 先核对定义和假设，再制作图解；所有数值演示标明为合成例子。
+- MathML 负责公式语义，SVG 负责解释机制；每图需具有文字说明。
+- 前向验证不能提前利用测试数据；不把统计检验的不显著当作假设为真。
+- 当前静态网站无需 npm/打包；维护旧链接，后续迁移优先不破坏公共地址。
 
----
-*本课程由 `time-series-analysis-tutorial/` 项目维护。*
+实现与发布规范参见 [AGENTS.md](AGENTS.md) 和 [站点架构](docs/architecture.md)。风格方法参考 [Olah-style-posts](https://github.com/1998x-stack/Olah-style-posts) 的 `olah-style-paper-posts` skill，但图文内容均独立撰写。
