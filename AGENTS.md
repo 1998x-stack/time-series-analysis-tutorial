@@ -2,7 +2,7 @@
 
 ## Mission
 
-维护一个能被零上下文读者独立读懂的中文时间序列教材。技术正确性先于视觉效果。首批 01–05 为已重构模板，06–28 保留原内容，后续必须逐篇审计，不能宣称全站都已完成深度精修。
+维护一个能被零上下文读者独立读懂的中文时间序列教材。技术正确性先于视觉效果。01–10 已分两批深度重构，11–28 保留原内容，后续必须逐篇审计，不能宣称全站都已完成深度精修。
 
 ## Work sequence（每篇必须）
 
@@ -19,7 +19,7 @@
 
 - Public entry: `index.html`，canonical article paths: `chapters/NN.html`.
 - All 28 previous public URLs `NN.html` MUST keep redirecting to `chapters/NN.html`; do not silently break backlinks.
-- `chapters/theme.css` is required while legacy chapters 06–28 still use `theme.css` relative to chapter path.
+- `chapters/theme.css` is required while legacy chapters 11–28 still use `theme.css` relative to chapter path.
 - Revised article styles live only in `assets/css/article.css`; homepage styles in `assets/css/site.css`.
 - Original illustrations in `assets/svg/*.svg`: SVG root must contain xmlns, viewBox, title, desc; important labels are >=13 px at nominal figure width (minor annotations may be slightly smaller), semantic color labels, and no embedded scripts.
 - Interactivity is progressive enhancement: core meaning and default state remain visible without JS.
@@ -33,6 +33,15 @@
 - Decomposition: distinguish seasonality vs irregular cycles, and additive vs multiplicative models; STL is estimation, not a causal separator.
 - SES: historical weights sum to 1 only with initialization remainder accounted for; pure SES has flat multi-step forecast; Holt uses explicit trend state; ETS first character is error form.
 - Distinguish illustrative toy data, theoretical population identities, finite-sample estimates and empirical results.
+
+## Second batch: 06–10 mathematical guardrails
+
+- OLS correlated errors affect usual SE and interval assumptions; HAC does not repair endogeneity. Spurious regression and cointegration require separate checks.
+- Spectral units: cycles/sample vs Hz, Nyquist fs/2, grid fs/N. Zero padding does not create real resolution. Do not confuse density and spectrum or one-sided and two-sided scaling.
+- AR(p): mean vs intercept; Yule–Walker Toeplitz system; causal stationarity requires all Φ(z) roots outside the unit circle. Finite-sample PACF is not identical to population cutoff.
+- MA(q) uses latent innovations, not a rolling observed-value average. MA(1) plus-sign convention gives ρ₁=θ/(1+θ²). Invertibility roots and stationarity are different concepts.
+- ARMA: Φ(B)z=Θ(B)ε; for ARMA(1,1), ψ₀=1 and ψ_h=(φ+θ)φ^(h−1). Future unknown innovations have zero conditional mean under model assumptions.
+- New interactive figures must react to native keyboard-accessible controls; Python snippets must run from checked-in dependencies.
 
 ## Reference skill
 

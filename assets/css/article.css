@@ -6,3 +6,19 @@
  .article figure img{width:960px;max-width:none;height:auto}
  .article figure figcaption{width:min(100%,calc(100vw - 34px));max-width:100%;padding-bottom:.35rem}
 }
+
+/* Focused 06–10 theory experiments: no third-party JavaScript. */
+.concept-lab{border:1px solid var(--line);border-radius:13px;background:#f6faf8;padding:22px 22px 18px;margin:24px 0;max-width:100%}
+.concept-lab label{display:block;font-weight:700;margin:0 0 12px}
+.concept-lab output{color:var(--accent);font-variant-numeric:tabular-nums}
+.concept-lab input[type=range]{display:block;accent-color:var(--accent);width:100%;min-height:32px;cursor:pointer}
+.lab-explainer{font-size:14px;line-height:1.65;color:var(--ink);margin:10px 0 12px;min-height:2em}
+.mini-bars{display:grid;grid-template-columns:repeat(var(--bars,12),minmax(0,1fr));gap:4px;height:165px;align-items:stretch;max-width:100%;border-bottom:2px solid #abc4be;background:linear-gradient(to bottom,transparent 49.6%,#bacbc8 49.6%,#bacbc8 50.5%,transparent 50.5%);padding:5px 2px 0}
+.mini-bar{position:relative;display:flex;justify-content:center;align-items:center;flex-direction:column;min-width:0;height:100%}
+.mini-column{position:absolute;width:65%;max-width:21px;border-radius:3px 3px 0 0;min-height:2px}
+.mini-column.positive{bottom:50%;background:#147f80}
+.mini-column.negative{top:50%;background:#d06d4d;border-radius:0 0 3px 3px}
+.mini-index{position:absolute;bottom:-17px;font:11px ui-monospace,monospace;color:#56717a}
+.concept-lab .formula-note{margin:24px 0 0;font-size:12px}
+@media(max-width:480px){.concept-lab{padding:16px 12px}.mini-bars{gap:2px}.mini-index{font-size:9px}}
+@media print{.concept-lab{break-inside:avoid}.concept-lab input{display:none}}

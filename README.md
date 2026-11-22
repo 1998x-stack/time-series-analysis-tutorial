@@ -4,7 +4,7 @@
 
 **站点入口：** https://1998x-stack.github.io/time-series-analysis-tutorial/  （需要 GitHub Pages 已开启；部署状态请在仓库 Actions / Settings → Pages 验证）
 
-首批重构 01–05 章，逐篇补全背景、数学公式、矢量图与可运行示例。其余 23 章保留原内容，待第二轮内容审计；不将其误标为精修完成。
+已分两批深度重构 01–10 章；第 11–28 章保留原内容，待后续审计，不将其误标为精修完成。
 
 ## 快速阅读
 
@@ -14,6 +14,7 @@
 python -m http.server 8000
 # 浏览 http://localhost:8000/
 python scripts/check_site.py
+python scripts/check_examples.py  # 安装 requirements-examples.txt 后运行
 ```
 
 无需构建工具即可阅读静态网页。示例中的统计模型代码需要额外安装 `numpy` 和 `statsmodels`：
@@ -22,7 +23,7 @@ python scripts/check_site.py
 python -m pip install -r requirements-examples.txt
 ```
 
-## 首批重构
+## 已完成精修的章节
 
 | 章节 | 核心要点 | 原创说明图 |
 | --- | --- | --- |
@@ -31,13 +32,18 @@ python -m pip install -r requirements-examples.txt
 | [03 平稳性](chapters/03.html) | 弱平稳、单位根、ADF/KPSS、差分 | 稳定与漂移 |
 | [04 相关分析](chapters/04.html) | ACF/PACF、白噪声、Ljung–Box、AIC/BIC | 条件关联与理论相关图 |
 | [05 指数平滑](chapters/05.html) | SES、Holt、季节模型、ETS | 权重与 α 对比 |
+| [06 时间序列回归](chapters/06.html) | 相关误差、伪回归、HAC、BG、动态回归 | 回归残差、信号通道 |
+| [07 频谱分析](chapters/07.html) | DFT、谱密度、泄漏、窗口、Nyquist | 时频映射、谱泄漏、Hann 窗 |
+| [08 自回归模型](chapters/08.html) | Yule–Walker、平稳根、冲击响应 | 状态反馈、根与衰减 |
+| [09 移动平均模型](chapters/09.html) | 创新、ACF 截尾、可逆性 | 冲击传播、双解、共享创新 |
+| [10 ARMA 模型](chapters/10.html) | 算子、预测、AICc、残差与回测 | 双路反馈、预测与检验 |
 
 ## 结构
 
 ```text
 index.html                  # GitHub Pages 首页
-chapters/01.html~28.html    # 课程正文；01-05 新版，06-28 原文保留
-chapters/theme.css          # 06-28 章原样兼容样式
+chapters/01.html~28.html    # 课程正文；01-10 新版，11-28 原文保留
+chapters/theme.css          # 11-28 章原样兼容样式
 assets/css/                 # 独立首页与新版文章的设计系统
 assets/svg/                 # 有语义标签的独立科学图
 assets/js/                  # 渐进增强；无需 JS 也能阅读核心内容
