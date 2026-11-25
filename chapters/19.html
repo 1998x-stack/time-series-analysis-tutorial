@@ -1,215 +1,217 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第19章 时序特征工程</title>
-    <link rel="stylesheet" href="theme.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="时序特征工程：把有序序列安全地转成监督学习表格，讲清滞后特征、滚动窗口、日历与傅里叶项、缺失值与异常检测，以及数据泄露的识别与规避。">
+<title>时序特征工程 · 时间序列分析</title>
+<link rel="stylesheet" href="../assets/css/article.css">
 </head>
 <body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-<li><a href="01.html">第1章 认识时间序列</a></li>
-<li><a href="02.html">第2章 时序的组成与分解</a></li>
-<li><a href="03.html">第3章 平稳性</a></li>
-<li><a href="04.html">第4章 自相关分析</a></li>
-<li><a href="05.html">第5章 指数平滑</a></li>
-<li><a href="06.html">第6章 时间序列回归</a></li>
-<li><a href="07.html">第7章 频谱分析入门</a></li>
-<li><a href="08.html">第8章 自回归模型(AR)</a></li>
-<li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-<li><a href="10.html">第10章 ARMA模型</a></li>
-<li><a href="11.html">第11章 差分与ARIMA</a></li>
-<li><a href="12.html">第12章 季节性ARIMA</a></li>
-<li><a href="13.html">第13章 建模实践与诊断</a></li>
-<li><a href="14.html">第14章 预测与评估</a></li>
-<li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-<li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-<li><a href="17.html">第17章 协整与误差修正模型</a></li>
-<li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-<li><a href="19.html" class="active">第19章 时序特征工程</a></li>
-<li><a href="20.html">第20章 树模型与时序预测</a></li>
-<li><a href="21.html">第21章 Prophet与自动预测</a></li>
-<li><a href="22.html">第22章 时序交叉验证</a></li>
-<li><a href="23.html">第23章 循环神经网络</a></li>
-<li><a href="24.html">第24章 卷积与时序</a></li>
-<li><a href="25.html">第25章 Transformer与时序</a></li>
-<li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-<li><a href="27.html">第27章 生产部署与MLOps</a></li>
-<li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-
-<h2>第19章 时序特征工程</h2>
-
-<p>大家好。在前面的章节中，我们学习了状态空间模型和卡尔曼滤波——它们属于经典的时序建模方法。但从这一章开始，我们要进入一个更广阔的天地：<strong>用机器学习做时序预测</strong>。</p>
-
-<p>你可能会问：我学了那么多 ARIMA、GARCH，为什么还要用 ML？原因很简单——真实世界的时序数据往往充满非线性关系、复杂的交互作用和大量外生变量。传统的参数化模型在面对这些场景时很快就会捉襟见肘。而机器学习模型，尤其是树模型和神经网络，恰恰擅长处理这类问题。</p>
-
-<p>但把时间序列塞进 ML 模型并不是直接扔进去就行。时序数据的结构是顺序依赖的，你不能像处理普通表格数据那样随便取一行就训练。这一章的核心就是<strong>时序特征工程</strong>——如何把一条时间序列安全地转换成 ML 模型能吃的"表格"。如果你这一步做错了，后面的模型再花哨也是白搭。</p>
-
-<h3>19.1 从时序到表格：核心思路</h3>
-
-<p>机器学习模型（XGBoost、Random Forest、神经网络等）通常期待输入是一个矩阵，每一行是一个样本，每一列是一个特征。但时间序列是一条先后有序的序列。怎么办呢？答案是<strong>滑窗变换</strong>：用过去一段窗口内的数据构造特征，预测未来的目标值。</p>
-
-<p>假设我们有一个每日销量序列 <code>[y1, y2, ..., yt]</code>。我们可以构造这样一个表格：</p>
-
-<table>
-    <tr><th>行</th><th>特征: y(t-2)</th><th>特征: y(t-1)</th><th>目标: y(t)</th></tr>
-    <tr><td>1</td><td>y1</td><td>y2</td><td>y3</td></tr>
-    <tr><td>2</td><td>y2</td><td>y3</td><td>y4</td></tr>
-    <tr><td>3</td><td>y3</td><td>y4</td><td>y5</td></tr>
-</table>
-
-<p>每一行对应一个时间点，特征是用历史值构造的<strong>滞后特征</strong>。这样就把时序问题转化成了监督学习问题。</p>
-
-<h3>19.2 滞后特征的选择</h3>
-
-<p>最基本的特征就是滞后值（lag features）：<code>lag_1, lag_2, ..., lag_k</code>。但选择多少阶滞后不是拍脑袋决定的，我们有一些工具辅助判断。</p>
-
-<p><strong>偏自相关函数</strong>是你在第 4 章学过的老朋友。PACF 图中，显著超出置信区间的滞后阶数就是潜在的候选特征。此外，<strong>领域知识</strong>同样重要。比如预测电商销量，过去 7 天的滞后几乎总是比过去 6 天更有用——因为周周期性。</p>
-
-<p>一个实用的建议：先选一个较大的滞后集合（比如过去 30 天），然后用树模型的特征重要性或 Lasso 做特征选择，让数据自己决定哪些滞后有用。不要手动筛选太多，模型会比你想的更善于处理冗余特征。</p>
-
-<div class="tip">
-<strong>小贴士：</strong>在构造滞后特征时，确保训练集和验证集之间没有数据交叉。也就是说，验证集中第 t 行的特征只能来自 t 时刻之前的数据。这一点看似简单，但在实践中非常容易出错。
+<a class="skip" href="#content">跳转至正文</a>
+<div class="page-shell">
+<nav class="aside" aria-label="课程与章内目录">
+<strong><a href="../index.html">时间序列分析</a></strong>
+<div class="separ"></div>
+<div class="toc-links">
+<a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a>
+<a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a>
+<a href="14.html">14　预测与评估</a><a href="15.html">15　波动率建模</a><a href="16.html">16　向量自回归 VAR</a><a href="17.html">17　协整与 VECM</a><a href="18.html">18　状态空间与卡尔曼滤波</a><a href="19.html" aria-current="page">19　时序特征工程</a>
 </div>
+<div class="separ"></div>
+<strong>本章路线</strong>
+<div class="toc-links">
+<a href="#table">01 · 从序列到表格</a><a href="#lags">02 · 滞后特征</a><a href="#rolling">03 · 滚动窗口统计</a><a href="#leakage">04 · 数据泄露</a><a href="#calendar">05 · 日历与傅里叶项</a><a href="#missing">06 · 缺失值</a><a href="#outlier">07 · 异常检测</a><a href="#experiment">08 · Python 实验</a><a href="#wrap">09 · 检查清单</a>
+</div>
+<div class="separ"></div>
+<a href="../index.html#catalog">全部课程 →</a>
+</nav>
+<main id="content">
+<article class="article">
+<header>
+<p class="eyebrow">CHAPTER 19 / 28 · FEATURE ENGINEERING</p>
+<h1>时序特征工程</h1>
+<p class="dek">把一条有序序列安全地变成监督学习的“表格”，是树模型与神经网络能用上时间信息的前提。这一章讲清滞后、滚动、日历与傅里叶特征，以及最危险的敌人——数据泄露。</p>
+<div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 泄露诊断</div>
+<p>前 18 章我们走完了经典时间序列的核心：AR、MA、ARMA、ARIMA、季节结构、波动率、VAR、协整与状态空间。它们都以“序列自身的动态”为建模对象。从这一章开始，主战场转向<strong>机器学习</strong>：树模型、梯度提升、神经网络都属于“给定特征 → 预测目标”的通用框架，本身并不知道时间是先后有序的。</p>
+<p>因此，把时间结构<strong>编码成特征</strong>就成了成败关键。做对了，模型能利用历史；做错了，模型会偷偷看到未来，得到漂亮却无意义的分数。这一章的目标不是罗列技巧，而是让你对“信息集边界”保持敏感。</p>
+</header>
+<section id="table" aria-labelledby="table-head">
+<h2 id="table-head">01 · 从序列到监督学习表格</h2>
+<p>普通监督学习假设样本<strong>独立同分布</strong>，可以随机打乱、随意划分。时间序列恰好相反：相邻观测高度相关，顺序本身携带信息。桥接两者的标准做法是<strong>滑窗变换</strong>——用过去一段窗口构造特征，去预测某个未来时刻的目标。</p>
+<p>引入两个关键设计量：<strong>窗口长度 L</strong>（回看多少期）与<strong>预测步长 h</strong>（往前预测多远）。样本 t 的特征只允许来自 y<sub>t</sub>, y<sub>t−1</sub>, …, y<sub>t−L+1</sub>，目标是 y<sub>t+h</sub>。当 h ≥ 1 时，特征与目标天然错开至少一步，这与“用 y<sub>t</sub> 预测 y<sub>t</sub>”是两回事。</p>
+<figure><!--inline:19-window--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" role="img" aria-labelledby="w-title w-desc"><title id="w-title">滑窗把时间序列变成监督学习表格</title><desc id="w-desc">一条序列被长度为 2 的窗口覆盖，窗口内的值成为滞后特征，窗口右侧第 1 期的值成为目标；不同窗口依次生成多行样本，组成特征-目标表格。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.lab{font-size:15px;font-weight:700}.n{font-size:13px;fill:#586e72}</style><defs><marker id="w-a" markerWidth="11" markerHeight="11" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#d06d4d"/></marker></defs><rect x="1" y="1" width="958" height="378" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">滑窗：用过去 L 期特征预测未来第 h 期目标</text><text x="30" y="74" class="n">原始序列（时间向右）</text>
+<g><rect x="60" y="90" width="70" height="46" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="95" y="119" class="lab" text-anchor="middle">y₁</text><rect x="144" y="90" width="70" height="46" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="179" y="119" class="lab" text-anchor="middle">y₂</text><rect x="228" y="90" width="70" height="46" rx="8" fill="#e8f4f0" stroke="#147f80" stroke-width="2"/><text x="263" y="119" class="lab" text-anchor="middle">y₃</text><rect x="312" y="90" width="70" height="46" rx="8" fill="#e8f4f0" stroke="#147f80" stroke-width="2"/><text x="347" y="119" class="lab" text-anchor="middle">y₄</text><rect x="396" y="90" width="70" height="46" rx="8" fill="#fbf1ec" stroke="#d06d4d" stroke-width="2"/><text x="431" y="119" class="lab" text-anchor="middle">y₅</text><rect x="480" y="90" width="70" height="46" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="515" y="119" class="lab" text-anchor="middle">y₆</text><rect x="564" y="90" width="70" height="46" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="599" y="119" class="lab" text-anchor="middle">y₇</text><rect x="648" y="90" width="70" height="46" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="683" y="119" class="lab" text-anchor="middle">y₈</text></g>
+<rect x="220" y="82" width="170" height="62" rx="10" fill="none" stroke="#147f80" stroke-width="3" stroke-dasharray="7 5"/><text x="305" y="166" class="n" text-anchor="middle">窗口 L=2：特征 = (y₃, y₄)</text><text x="431" y="166" class="n" text-anchor="middle" fill="#b2563a">目标 = y₅</text><path d="M305 172 L305 200 L420 200 L420 186" stroke="#d06d4d" stroke-width="2.4" fill="none" marker-end="url(#w-a)"/>
+<g transform="translate(300,206)"><rect x="0" y="0" width="600" height="150" rx="11" fill="#f4f8f5" stroke="#dce7e4"/><rect x="0" y="0" width="600" height="38" rx="11" fill="#e8f4f0"/><text x="14" y="25" class="n" font-weight="700">样本</text><text x="150" y="25" class="n" font-weight="700">lag_2</text><text x="290" y="25" class="n" font-weight="700">lag_1</text><text x="440" y="25" class="n" font-weight="700">目标 y(t)</text><line x1="0" y1="38" x2="600" y2="38" stroke="#dce7e4"/><line x1="0" y1="75" x2="600" y2="75" stroke="#dce7e4"/><line x1="0" y1="112" x2="600" y2="112" stroke="#dce7e4"/><text x="14" y="62" class="n">t=3</text><text x="150" y="62" class="n">y₁</text><text x="290" y="62" class="n">y₂</text><text x="440" y="62" class="n" fill="#b2563a">y₃</text><text x="14" y="99" class="n">t=4</text><text x="150" y="99" class="n">y₂</text><text x="290" y="99" class="n">y₃</text><text x="440" y="99" class="n" fill="#b2563a">y₄</text><text x="14" y="136" class="n">t=5</text><text x="150" y="136" class="n">y₃</text><text x="290" y="136" class="n">y₄</text><text x="440" y="136" class="n" fill="#b2563a">y₅</text></g>
+<text x="30" y="372" class="n">青色 = 特征（历史），橙色 = 目标（未来）。行与行共享历史，故样本不独立，必须按时间划分。</text></svg>
+<figcaption>滑窗把一条序列“折叠”成多行样本：第 t 行的特征是窗口内的历史值，标签是窗口之后第 h 期的值。<strong>行与行之间不再独立，必须按时间顺序划分训练与验证。</strong>图为机制示意。</figcaption>
+</figure>
+<div class="table-scroll">
+<table><caption>滑窗生成的监督学习表格（L=2，h=1）</caption><thead><tr><th scope="col">样本</th><th scope="col">特征 lag_2</th><th scope="col">特征 lag_1</th><th scope="col">目标 y(t)</th></tr></thead><tbody><tr><td>t=3</td><td>y₁</td><td>y₂</td><td>y₃</td></tr><tr><td>t=4</td><td>y₂</td><td>y₃</td><td>y₄</td></tr><tr><td>t=5</td><td>y₃</td><td>y₄</td><td>y₅</td></tr></tbody></table>
+</div>
+<p>注意表格里的“行”其实是同一段历史的不同切面：第 3 行与第 4 行共享 y₂、y₃。这种重叠意味着样本量被高估，也意味着<strong>不能把随机打乱当作增强</strong>。</p>
+</section>
 
-<h3>19.3 滚动窗口统计量</h3>
+<section id="lags" aria-labelledby="lags-head">
+<h2 id="lags-head">02 · 滞后特征</h2>
+<p>最基础的特征是<strong>滞后值</strong> <code>lag_1, lag_2, …, lag_k</code>。选多少阶滞后有两个来源：统计线索与领域知识。</p>
+<p>统计上，第 4 章的偏自相关函数（PACF）给出候选：显著超出置信带的滞后阶数值得纳入。但要记住 <a href="04.html">第 4 章</a>强调过的边界——有限样本的 PACF 与总体截断点并不完全一致，它只是线索而非判决。领域知识同样重要：预测日度零售销量时，过去 7 天的滞后通常比第 6 天更有用，因为存在周周期。</p>
+<p>实践中可以先用一个较大的滞后集合（例如过去 30 期），再让树模型的特征重要性或 Lasso 做筛选。模型对冗余特征通常有一定容忍度，但滞后阶数过大也会引入噪声、增加过拟合风险，仍需交叉验证确认。</p>
+<p>一个容易被忽略的约束：<strong>特征必须在预测时刻真实可得</strong>。如果某变量的发布有滞后（如月度 GDP 要到季末才公布），把它当作当期特征就是在用当时拿不到的信息。这一条约束比任何算法选择都更根本。</p>
+</section>
 
-<p>仅用原始滞后值还不够。真实时序中，<strong>局部趋势和波动模式</strong>往往比精确的过去值更有信息量。滚动窗口统计量可以捕捉这些模式。</p>
-
-<p>常用的滚动特征包括：</p>
+<section id="rolling" aria-labelledby="rolling-head">
+<h2 id="rolling-head">03 · 滚动窗口统计量</h2>
+<p>仅用原始滞后值不够。局部趋势与波动水平往往比精确的过去值更有信息量，而滚动统计量正好把它们提炼出来。常见的滚动特征包括：</p>
 <ul>
-    <li><strong>滚动均值（rolling mean）</strong>：过去 N 期平均值，反映局部趋势</li>
-    <li><strong>滚动标准差</strong>：过去 N 期波动率，反映局部不确定性</li>
-    <li><strong>滚动最小值/最大值</strong>：过去 N 期的区间边界</li>
-    <li><strong>滚动分位数</strong>：如滚动中位数、25%/75% 分位数，对异常值更稳健</li>
-    <li><strong>滚动斜率</strong>：过去 N 期线性回归的斜率，反映局部变化速度</li>
+<li><strong>滚动均值</strong>：过去 L 期平均，反映局部水平；</li>
+<li><strong>滚动标准差</strong>：过去 L 期波动，反映局部不确定性；</li>
+<li><strong>滚动最小/最大值与极差</strong>：过去 L 期的区间边界；</li>
+<li><strong>滚动分位数（中位数、25%/75%）</strong>：对异常值更稳健；</li>
+<li><strong>滚动斜率</strong>：对窗口做线性回归得到的斜率，反映局部变化速度。</li>
 </ul>
-
-<pre><code>import pandas as pd
-import numpy as np
-
-def create_rolling_features(series, window=7):
-    """为时序数据生成滚动窗口特征"""
-    df = pd.DataFrame({'y': series})
-    df['rolling_mean'] = df['y'].rolling(window).mean()
-    df['rolling_std'] = df['y'].rolling(window).std()
-    df['rolling_min'] = df['y'].rolling(window).min()
-    df['rolling_max'] = df['y'].rolling(window).max()
-    df['rolling_median'] = df['y'].rolling(window).median()
-    df['rolling_range'] = df['rolling_max'] - df['rolling_min']
-    return df</code></pre>
-
-<div class="warning">
-<strong>踩坑警告：数据泄露！</strong>这是时序特征工程中最常见、也最隐蔽的错误。假设你想用过去 7 天的均值预测第 t 天的值。如果你直接对整个序列调用 <code>rolling(7).mean()</code>，然后和原始数据并在一起划分训练集和测试集——你已经在用"未来"信息了。正确的做法是：在训练集内，每个时间点的滚动特征只能包含该点之前的窗口数据。pandas 的 <code>shift()</code> 是你的朋友：<code>series.rolling(7).mean().shift(1)</code> 才能保证不泄露当前时间点的信息。
+<p>以滚动均值为例，窗口长度为 L 时，时刻 t 的特征是：</p>
+<div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="滚动均值定义"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="窗口长度 L 的滚动均值等于 t−L+1 到 t 的均值"><mrow><msubsup><mover accent="true"><mi>y</mi><mo>‾</mo></mover><mi>t</mi><mrow><mo>(</mo><mi>L</mi><mo>)</mo></mrow></msubsup><mo>=</mo><mfrac><mn>1</mn><mi>L</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mi>t</mi><mo>−</mo><mi>L</mi><mo>+</mo><mn>1</mn></mrow><mi>t</mi></munderover><msub><mi>y</mi><mi>i</mi></msub></mrow></math>
+<div class="formula-note">这个定义本身是“截至 t 的历史汇总”，并不含未来。泄露风险不来自公式，而来自<strong>与目标的对齐</strong>：如果目标是 y<sub>t</sub>，那么用含 y<sub>t</sub> 的滚动均值去预测它，就已经越界。
 </div>
+</div>
+<p>同理，滚动 z 分数 <code>(y_t − 滚动均值) / 滚动标准差</code> 依赖同期 y<sub>t</sub>，它适合做<strong>异常检测</strong>（事后标记），却不适合作为预测同期的特征。</p>
+<figure><!--inline:19-leakage--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" role="img" aria-labelledby="lk-title lk-desc"><title id="lk-title">滚动特征与目标的对齐：正确与泄露</title><desc id="lk-desc">预测目标 y_t 时，正确做法让滚动窗口只覆盖 y_t 之前的值并向后平移对齐；泄露做法让窗口包含 y_t 本身，使特征携带了要预测的值。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.lab{font-size:15px;font-weight:700}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="378" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">同一个滚动均值，只差一步对齐就是泄露</text>
+<text x="30" y="86" class="n">时间轴（向右为未来）；目标为 yₜ（橙色）</text>
+<g><rect x="120" y="104" width="96" height="50" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="168" y="135" class="lab" text-anchor="middle">yₜ₋₃</text><rect x="228" y="104" width="96" height="50" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="276" y="135" class="lab" text-anchor="middle">yₜ₋₂</text><rect x="336" y="104" width="96" height="50" rx="8" fill="#f1f5f4" stroke="#dce7e4"/><text x="384" y="135" class="lab" text-anchor="middle">yₜ₋₁</text><rect x="444" y="104" width="96" height="50" rx="8" fill="#fbf1ec" stroke="#d06d4d" stroke-width="2.5"/><text x="492" y="135" class="lab" text-anchor="middle" fill="#b2563a">yₜ</text><rect x="552" y="104" width="96" height="50" rx="8" fill="#ffffff" stroke="#e7eeec" stroke-dasharray="5 4"/><text x="600" y="135" class="lab" text-anchor="middle" fill="#9fb0ad">yₜ₊₁</text><rect x="660" y="104" width="96" height="50" rx="8" fill="#ffffff" stroke="#e7eeec" stroke-dasharray="5 4"/><text x="708" y="135" class="lab" text-anchor="middle" fill="#9fb0ad">yₜ₊₂</text></g>
+<rect x="120" y="196" width="312" height="34" rx="7" fill="#e8f4f0" stroke="#147f80" stroke-width="2"/><text x="276" y="219" class="n" text-anchor="middle" fill="#0f6a6b">正确：窗口 = (yₜ₋₃, yₜ₋₂, yₜ₋₁)，不含 yₜ</text>
+<path d="M276 230 L276 258" stroke="#147f80" stroke-width="2.2" fill="none"/><text x="276" y="280" class="n" text-anchor="middle" fill="#0f6a6b">先把特征算好，再 shift(h) 对齐目标 ✓</text>
+<rect x="228" y="304" width="312" height="34" rx="7" fill="#fbf1ec" stroke="#d06d4d" stroke-width="2"/><text x="384" y="327" class="n" text-anchor="middle" fill="#b2563a">泄露：窗口 = (yₜ₋₂, yₜ₋₁, yₜ)，含 yₜ</text>
+<path d="M492 154 L492 196" stroke="#d06d4d" stroke-width="2.2" fill="none"/><text x="700" y="325" class="n" fill="#b2563a">特征里已经“看到” yₜ → 离线分数虚高</text></svg>
+<figcaption>正确做法（上）：先算滚动均值再 <code>shift(h)</code>，使特征只含目标之前的信息。泄露做法（下）：特征与目标同期对齐，窗口把它“看”到。<strong>两条序列看上去一模一样，差别只在一步对齐上。</strong>图为机制示意。</figcaption>
+</figure>
+<p>可以形成一条稳定规则：<strong>先把所有特征算出来，再统一向后平移 h 步去对齐目标</strong>。这比在每个函数里手动防错更可靠。</p>
+</section>
 
-<p>我曾经见过一个团队在 Kaggle 竞赛中提交了本地验证 0.98 R² 的模型，结果公开榜只有 0.2。排查了一整天，发现是他们在构造滚动均值时忘了 <code>shift(1)</code>——每个样本都"看到"了当天的真实值。这个教训告诉我们，时序特征工程中，<strong>数据泄露的代价是毁灭性的</strong>，而且往往要到最后阶段才会暴露。</p>
+<section id="leakage" aria-labelledby="leakage-head">
+<h2 id="leakage-head">04 · 数据泄露的几种形态</h2>
+<p>数据泄露是时序机器学习中最隐蔽、代价最高的错误。它不一定报错，却会让离线分数虚高、上线后崩溃。常见形态至少有四类：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">泄露形态</th><th scope="col">表现</th><th scope="col">修正</th></tr></thead><tbody>
+<tr><td>目标泄露</td><td>特征含目标同期或未来信息（如忘了 <code>shift</code>）</td><td>特征统一向后平移 h 步对齐目标</td></tr>
+<tr><td>预处理的泄露</td><td>在全量数据上拟合 scaler / 插补器 / 异常阈值</td><td>只用训练段拟合，再 transform 验证段</td></tr>
+<tr><td>不可得特征</td><td>使用了当时尚未发布的变量或后验汇总</td><td>按发布延迟对齐特征时间戳</td></tr>
+<tr><td>划分的泄露</td><td>随机切分、重叠窗口跨界</td><td>按时间切分并加间隔（purge/embargo）</td></tr>
+</tbody></table>
+</div>
+<p>其中“预处理的泄露”最容易被忽视：均值和标准差本身就是从数据估出来的参数，用全量数据估计就等于让训练段“了解”了验证段的分布。正确的流程是<strong>只在训练段 <code>fit</code>，再 <code>transform</code> 验证段</strong>，验证段的新数据一律不参与统计。</p>
+<div class="callout"><strong>可执行的判据：</strong>对任意样本，若把目标 y<sub>t+h</sub> 随机重排而特征不变，模型的离线分数应明显下降。如果重排后分数几乎不动，几乎可以断定特征里混入了目标信息。</div>
+</section>
 
-<h3>19.4 日历特征</h3>
+<section id="calendar" aria-labelledby="calendar-head">
+<h2 id="calendar-head">05 · 日历与傅里叶项</h2>
+<p>时间坐标本身携带大量信息：小时、星期几、月份、是否节假日、月中/月末等，都能帮助模型捕捉人类社会的周期性行为。对于固定周期的季节波动，更好用的编码是<strong>傅里叶项</strong>：用若干对正弦、余弦函数逼近任意周期形状。</p>
+<p>周期长度为 P、阶数为 k 的一对傅里叶项定义为：</p>
+<div class="mathbox" data-math-scroll tabindex="0" role="region" aria-label="傅里叶特征定义"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="傅里叶特征：s_k(t) 等于正弦 2πkt 除以 P，c_k(t) 等于余弦 2πkt 除以 P"><mrow><msub><mi>s</mi><mi>k</mi></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>sin</mi><mrow><mo>(</mo><mfrac><mrow><mn>2</mn><mi>π</mi><mi>k</mi><mi>t</mi></mrow><mi>P</mi></mfrac><mo>)</mo></mrow><mo>,</mo><mspace width="1.2em"/><msub><mi>c</mi><mi>k</mi></msub><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo><mi>cos</mi><mrow><mo>(</mo><mfrac><mrow><mn>2</mn><mi>π</mi><mi>k</mi><mi>t</mi></mrow><mi>P</mi></mfrac><mo>)</mo></mrow></mrow></math>
+<div class="formula-note">t 是单调递增的时间索引（不要每年清零），P 是周期长度（周周期 7，年周期 365.25）。k 越大频率越高，能拟合的周期形状越尖锐，但同样增加过拟合风险。
+</div>
+</div>
+<p>阶数 k 不应无界增大。离散采样的一个基本限制是：一个周期内最多分辨 P/2 个独立频率成分（即 k ≤ P/2），超过它只能拟合噪声。可以同时为多个周期叠加傅里叶项，例如日度数据用 P=7 取 2–3 对捕捉周内形状，再用 P=365.25 取若干对捕捉年内季节。</p>
+<figure><!--inline:19-calendar--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 380" role="img" aria-labelledby="c-title c-desc"><title id="c-title">日历的傅里叶编码与季节重构</title><desc id="c-desc">左侧是同一周期的正弦与余弦基函数及其线性组合，右侧是含噪声的合成序列与用少数傅里叶项重构的平滑季节曲线。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="378" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">用少数正弦/余弦项编码周期并重构季节</text>
+<text x="40" y="80" class="n">基函数（周期 P=12）</text><line x1="40" y1="186" x2="430" y2="186" stroke="#e2ebe8"/><path d="M40.0 191.0 L44.1 182.1 L48.1 173.4 L52.2 165.0 L56.2 157.1 L60.3 149.7 L64.4 143.0 L68.4 137.2 L72.5 132.2 L76.6 128.3 L80.6 125.5 L84.7 123.7 L88.8 123.1 L92.8 123.7 L96.9 125.5 L100.9 128.3 L105.0 132.2 L109.1 137.2 L113.1 143.0 L117.2 149.7 L121.2 157.1 L125.3 165.0 L129.4 173.4 L133.4 182.1 L137.5 191.0 L141.6 199.9 L145.6 208.6 L149.7 217.0 L153.8 224.9 L157.8 232.3 L161.9 239.0 L165.9 244.8 L170.0 249.8 L174.1 253.7 L178.1 256.5 L182.2 258.3 L186.2 258.9 L190.3 258.3 L194.4 256.5 L198.4 253.7 L202.5 249.8 L206.6 244.8 L210.6 239.0 L214.7 232.3 L218.8 224.9 L222.8 217.0 L226.9 208.6 L230.9 199.9 L235.0 191.0 L239.1 182.1 L243.1 173.4 L247.2 165.0 L251.2 157.1 L255.3 149.7 L259.4 143.0 L263.4 137.2 L267.5 132.2 L271.6 128.3 L275.6 125.5 L279.7 123.7 L283.8 123.1 L287.8 123.7 L291.9 125.5 L295.9 128.3 L300.0 132.2 L304.1 137.2 L308.1 143.0 L312.2 149.7 L316.2 157.1 L320.3 165.0 L324.4 173.4 L328.4 182.1 L332.5 191.0 L336.6 199.9 L340.6 208.6 L344.7 217.0 L348.8 224.9 L352.8 232.3 L356.9 239.0 L360.9 244.8 L365.0 249.8 L369.1 253.7 L373.1 256.5 L377.2 258.3 L381.2 258.9 L385.3 258.3 L389.4 256.5 L393.4 253.7 L397.5 249.8 L401.6 244.8 L405.6 239.0 L409.7 232.3 L413.8 224.9 L417.8 217.0 L421.9 208.6 L425.9 199.9 L430.0 191.0" fill="none" stroke="#147f80" stroke-width="2.6"/><path d="M40.0 123.1 L44.1 123.7 L48.1 125.5 L52.2 128.3 L56.2 132.2 L60.3 137.2 L64.4 143.0 L68.4 149.7 L72.5 157.1 L76.6 165.0 L80.6 173.4 L84.7 182.1 L88.8 191.0 L92.8 199.9 L96.9 208.6 L100.9 217.0 L105.0 224.9 L109.1 232.3 L113.1 239.0 L117.2 244.8 L121.2 249.8 L125.3 253.7 L129.4 256.5 L133.4 258.3 L137.5 258.9 L141.6 258.3 L145.6 256.5 L149.7 253.7 L153.8 249.8 L157.8 244.8 L161.9 239.0 L165.9 232.3 L170.0 224.9 L174.1 217.0 L178.1 208.6 L182.2 199.9 L186.2 191.0 L190.3 182.1 L194.4 173.4 L198.4 165.0 L202.5 157.1 L206.6 149.7 L210.6 143.0 L214.7 137.2 L218.8 132.2 L222.8 128.3 L226.9 125.5 L230.9 123.7 L235.0 123.1 L239.1 123.7 L243.1 125.5 L247.2 128.3 L251.2 132.2 L255.3 137.2 L259.4 143.0 L263.4 149.7 L267.5 157.1 L271.6 165.0 L275.6 173.4 L279.7 182.1 L283.8 191.0 L287.8 199.9 L291.9 208.6 L295.9 217.0 L300.0 224.9 L304.1 232.3 L308.1 239.0 L312.2 244.8 L316.2 249.8 L320.3 253.7 L324.4 256.5 L328.4 258.3 L332.5 258.9 L336.6 258.3 L340.6 256.5 L344.7 253.7 L348.8 249.8 L352.8 244.8 L356.9 239.0 L360.9 232.3 L365.0 224.9 L369.1 217.0 L373.1 208.6 L377.2 199.9 L381.2 191.0 L385.3 182.1 L389.4 173.4 L393.4 165.0 L397.5 157.1 L401.6 149.7 L405.6 143.0 L409.7 137.2 L413.8 132.2 L417.8 128.3 L421.9 125.5 L425.9 123.7 L430.0 123.1" fill="none" stroke="#7461ba" stroke-width="2.6" stroke-dasharray="7 5"/><path d="M40.0 143.5 L44.1 129.7 L48.1 117.0 L52.2 105.6 L56.2 95.6 L60.3 87.2 L64.4 80.6 L68.4 75.9 L72.5 73.2 L76.6 72.5 L80.6 73.8 L84.7 77.2 L88.8 82.4 L92.8 89.6 L96.9 98.4 L100.9 108.9 L105.0 120.7 L109.1 133.8 L113.1 147.8 L117.2 162.6 L121.2 177.9 L125.3 193.3 L129.4 208.8 L133.4 223.9 L137.5 238.5 L141.6 252.3 L145.6 265.0 L149.7 276.4 L153.8 286.4 L157.8 294.8 L161.9 301.4 L165.9 306.1 L170.0 308.8 L174.1 309.5 L178.1 308.2 L182.2 304.8 L186.2 299.6 L190.3 292.4 L194.4 283.6 L198.4 273.1 L202.5 261.3 L206.6 248.2 L210.6 234.2 L214.7 219.4 L218.8 204.1 L222.8 188.7 L226.9 173.2 L230.9 158.1 L235.0 143.5 L239.1 129.7 L243.1 117.0 L247.2 105.6 L251.2 95.6 L255.3 87.2 L259.4 80.6 L263.4 75.9 L267.5 73.2 L271.6 72.5 L275.6 73.8 L279.7 77.2 L283.8 82.4 L287.8 89.6 L291.9 98.4 L295.9 108.9 L300.0 120.7 L304.1 133.8 L308.1 147.8 L312.2 162.6 L316.2 177.9 L320.3 193.3 L324.4 208.8 L328.4 223.9 L332.5 238.5 L336.6 252.3 L340.6 265.0 L344.7 276.4 L348.8 286.4 L352.8 294.8 L356.9 301.4 L360.9 306.1 L365.0 308.8 L369.1 309.5 L373.1 308.2 L377.2 304.8 L381.2 299.6 L385.3 292.4 L389.4 283.6 L393.4 273.1 L397.5 261.3 L401.6 248.2 L405.6 234.2 L409.7 219.4 L413.8 204.1 L417.8 188.7 L421.9 173.2 L425.9 158.1 L430.0 143.5" fill="none" stroke="#d06d4d" stroke-width="2.6"/><text x="52" y="110" class="n" fill="#0f6a6b">sin(2πkt/P)</text><text x="180" y="110" class="n" fill="#5a4a92">cos(2πkt/P)</text><text x="310" y="110" class="n" fill="#b2563a">线性组合</text>
+<text x="530" y="80" class="n">合成序列（灰）与傅里叶重构（青）</text><line x1="530" y1="246" x2="890" y2="246" stroke="#cfdedb"/><polyline points="530.0,213.1 536.1,186.4 542.2,179.3 548.3,175.8 554.4,192.0 560.5,149.0 566.6,203.3 572.7,229.9 578.8,237.8 584.9,222.3 591.0,239.5 597.1,225.9 603.2,191.6 609.3,158.6 615.4,165.0 621.5,155.4 627.6,158.1 633.7,157.8 639.8,190.9 645.9,216.2 652.0,241.5 658.1,212.1 664.2,225.2 670.3,234.3 676.4,178.2 682.5,147.3 688.6,152.5 694.7,168.7 700.8,155.9 706.9,160.4 713.1,171.4 719.2,229.1 725.3,215.9 731.4,237.2 737.5,219.5 743.6,205.6 749.7,185.0 755.8,165.6 761.9,149.3 768.0,148.3 774.1,147.1 780.2,149.3 786.3,179.5 792.4,213.4 798.5,224.9 804.6,203.8 810.7,205.3 816.8,202.4 822.9,184.5 829.0,141.1 835.1,122.5 841.2,155.6 847.3,130.9 853.4,143.1 859.5,162.5 865.6,203.3 871.7,195.7 877.8,189.6 883.9,206.0 890.0,197.3" fill="none" stroke="#9fb0ad" stroke-width="1.3"/><path d="M530.0 201.1 L536.1 167.7 L542.2 164.4 L548.3 170.6 L554.4 163.2 L560.5 165.3 L566.6 197.4 L572.7 229.6 L578.8 231.7 L584.9 224.3 L591.0 230.4 L597.1 227.1 L603.2 193.7 L609.3 160.4 L615.4 157.0 L621.5 163.2 L627.6 155.8 L633.7 157.9 L639.8 190.1 L645.9 222.2 L652.0 224.3 L658.1 216.9 L664.2 223.1 L670.3 219.8 L676.4 186.4 L682.5 153.0 L688.6 149.7 L694.7 155.9 L700.8 148.4 L706.9 150.5 L713.1 182.7 L719.2 214.8 L725.3 216.9 L731.4 209.5 L737.5 215.7 L743.6 212.4 L749.7 179.0 L755.8 145.6 L761.9 142.3 L768.0 148.5 L774.1 141.1 L780.2 143.2 L786.3 175.3 L792.4 207.5 L798.5 209.6 L804.6 202.1 L810.7 208.3 L816.8 205.0 L822.9 171.6 L829.0 138.2 L835.1 134.9 L841.2 141.1 L847.3 133.7 L853.4 135.8 L859.5 167.9 L865.6 200.1 L871.7 202.2 L877.8 194.8 L883.9 201.0 L890.0 197.6" fill="none" stroke="#147f80" stroke-width="2.8"/>
+<text x="40" y="330" class="n">周期 P=12，取 k=1 与 k=3 两对项。</text><text x="40" y="354" class="n">阶数 k 越大越能拟合尖锐形状，但受采样限制 k ≤ P/2（本例 k≤6），再大只是拟合噪声。</text>
+<text x="530" y="330" class="n">灰点为含噪观测，青线只用少数傅里叶项重建固定季节。</text></svg>
+<figcaption>用少量正弦/余弦对就能逼近周期形状：左边是基函数，右边是原序列与重构曲线。<strong>傅里叶项让线性模型也具备季节能力，同时保持参数少、外推稳定。</strong>图中数据为合成示意。</figcaption>
+</figure>
+<div class="callout"><strong>循环编码 vs 数值编码：</strong>月份、星期几这类循环变量若只用数值 1–12 表示，树模型会默认 12 与 1 相距很远，而它们其实是相邻的。同时保留数值编码与 sin/cos 编码，让模型自行选择更合适的切分方式。</div>
+</section>
 
-<p>时间本身携带了大量信息。日历特征能帮助模型捕捉人类社会的周期性行为：</p>
+<section id="missing" aria-labelledby="missing-head">
+<h2 id="missing-head">06 · 缺失值处理</h2>
+<p>时序缺失比普通表格更棘手：不能随意删行，否则打乱时间间隔。处理前先弄清缺失<strong>机制</strong>——是完全随机、与取值相关，还是与时间相关（如设备夜间停机）。不同机制下合适的方法不同。</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">方法</th><th scope="col">适用场景</th><th scope="col">风险</th></tr></thead><tbody>
+<tr><td>前向填充 ffill</td><td>短缺口、取值变化缓慢</td><td>引入阶梯滞后</td></tr>
+<tr><td>线性 / 样条插值</td><td>趋势平滑且缺口不长</td><td>在拐点处失真；插值会用到后向信息</td></tr>
+<tr><td>季节插值</td><td>有强周期</td><td>需先对齐周期相位</td></tr>
+<tr><td>模型预测填充</td><td>长缺口</td><td>成本高，会把模型偏差带入特征</td></tr>
+<tr><td>直接删除</td><td>缺失极少且非连续</td><td>改变采样节奏</td></tr>
+</tbody></table>
+</div>
+<p>有一个简单而稳健的基线：<strong>前向填充，并加一个“是否被填充”的指示列</strong>。标记列告诉模型“这个值是真实观测还是填充的”，让它自行决定是否信任。</p>
+<div class="callout"><strong>实时与回测的差异：</strong>线性插值、用后向值回填都使用了<strong>未来信息</strong>。若模型要在线运行或做回测，必须改用仅依赖过去的填充（如 ffill），否则同样是泄露。这是“方式本身没错，场景用错”的典型。</div>
+</section>
 
+<section id="outlier" aria-labelledby="outlier-head">
+<h2 id="outlier-head">07 · 异常检测</h2>
+<p>时序异常可能是传感器故障、录入错误，也可能是真实事件信号（促销、突发需求）。在特征工程阶段，至少要能<strong>识别</strong>它们，而不是盲目删除或截断。</p>
+<p>最常用的两种全局判据：<strong>Z-score</strong>（距均值多少个标准差，通常 |z|&gt;3 视为异常）与<strong>IQR</strong>（超出 Q1−1.5·IQR 与 Q3+1.5·IQR 之外）。两者都有局限：Z-score 假设近似正态且均值和标准差本身会被极值污染；IQR 不感知时序局部性，序列整体的正常值在局部可能看似异常。</p>
+<p>更贴合时序的做法是<strong>滚动窗口版本</strong>：用过去 L 期的均值与标准差计算局部 z 分数，从而感知局部波动水平。这与前面的滚动统计量是同一套工具。</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>import numpy as np
+
+def rolling_zscore(y, window=30):
+    """滚动局部 z 分数：第 t 期的均值/标准差只用 y[t-window+1..t]。"""
+    y = np.asarray(y, dtype=float)
+    z = np.full(y.shape, np.nan)
+    for t in range(window, len(y)):
+        seg = y[t - window:t]          # 不含 y[t]，避免用自己的值判断自己
+        sd = seg.std(ddof=1)
+        if sd > 0:
+            z[t] = (y[t] - seg.mean()) / sd
+    return z
+
+flag = np.abs(rolling_zscore(y, 30)) &gt; 3.0</code></pre>
+<p>注意这里把窗口写成 <code>y[t-window:t]</code>（不含 y[t]）：用同期值判断它自己是否为异常，会把异常拉进均值里、稀释信号。若分布明显受极值污染，把均值/标准差换成中位数/MAD 会更稳健。此外，<strong>异常不必等于删除</strong>：如果异常是真实事件，保留它并加上“异常标记”列，往往比直接剔除更有价值。</p>
+</section>
+
+<section id="experiment" aria-labelledby="experiment-head">
+<h2 id="experiment-head">08 · Python 实验：“含当前值的滚动均值”到底泄露了什么</h2>
+<p>下面用一个确定随机种子的合成序列（趋势 + 周周期 + 噪声）对比两种滚动均值：泄露版含当期 y<sub>t</sub>，诚实版不含。目标是用它们预测<strong>当期</strong> y<sub>t</sub>（即开现在值，在真实系统里当期值尚不可得）。只依赖 numpy。</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>import numpy as np
+rng = np.random.default_rng(1900)
+n = 300
+eps = rng.standard_normal(n)
+y = np.empty(n); y[0] = 0.0
+for i in range(1, n):
+    y[i] = 0.9 * y[i-1] + eps[i]        # 持续性强的时间序列
+
+L = 2
+leaky = np.array([y[max(0, i-L+1):i+1].mean() for i in range(n)])  # 含 y_t
+truth = np.concatenate([[np.nan], leaky[:-1]])                    # 不含 y_t
+
+cc = lambda a, b: float(np.corrcoef(a, b)[0, 1])
+print("corr(leaky, y) =", round(cc(leaky, y), 4))          # ≈ 0.9755
+print("corr(truth, y) =", round(cc(truth[1:], y[1:]), 4))  # ≈ 0.8881
+assert cc(leaky, y) - cc(truth[1:], y[1:]) &gt; 0.05         # 泄露让特征“更像”目标</code></pre>
+<p>预期结果：含当期值的特征与目标相关系数约为 0.9755，不含当期值的约为 0.8881，差约 0.09——这一截差异就是 y<sub>t</sub> 直接漏进来的部分。<strong>这是合成数据上的机制验证，不代表任何真实数据集的预测水平</strong>；真实项目里可用同样的“相关系数异常地高”体检来排查泄露。</p>
+</section>
+
+<section id="wrap" aria-labelledby="wrap-head">
+<h2 id="wrap-head">09 · 检查清单</h2>
+<p>每次做时序机器学习项目，可以逐项核对：</p>
 <ul>
-    <li><strong>小时 / 星期几 / 月份</strong>：最基础的周期性编码</li>
-    <li><strong>是否周末 / 是否节假日</strong>：对于零售、交通等领域至关重要</li>
-    <li><strong>一年中的第几天 / 第几周</strong>：捕捉季节性变化</li>
-    <li><strong>月初 / 月末 / 季末</strong>：财务报表、工资发放等行为模式</li>
-    <li><strong>特殊事件标记</strong>：双十一、黑色星期五、疫情封控等一次性事件</li>
+<li>特征与目标的时间对齐步长 h 在所有分支上一致吗？滚动特征是否统一平移了 h 步？</li>
+<li>scaler、插补器、异常阈值只在训练段拟合了吗？</li>
+<li>所有特征在预测时刻都真可得吗（无发布延迟、无后验汇总）？</li>
+<li>训练/验证是按时间切分并留了间隔吗（参见<a href="22.html">第 22 章</a>）？</li>
+<li>缺失值的填充方式在线与回测时是否一致？</li>
+<li>异常是被保留并标记，还是被默默删除了？</li>
 </ul>
+<div class="thought"><strong>一句话原则：</strong>任何一行样本，其特征只能来自该行目标时刻<strong>之前</strong>的信息。把所有特征画出时间轴、标出每个特征的“信息截止时刻”，是发现泄露最快的办法。下一章我们把这套特征工程用于<strong>树模型</strong>，并讨论它为何在表格类时序任务中常胜过单一 ARIMA。</div>
+</section>
 
-<p>对于节假日特征，你可以使用各语言的开放节假日库（Python 的 <code>holidays</code> 包或 <code>workalendar</code>），也可以手动标记。更高级的做法是为每个节假日添加一个"节前 N 天"和"节后 N 天"的窗口特征——很多消费行为在节前达到峰值，节后迅速回落。</p>
+<section id="references">
+<h2>进一步阅读与技术核对</h2>
+<p>引用指向特征构造、周期编码与时间序列交叉验证的权威资料。</p>
+<ol class="refs">
+<li><a href="https://otexts.com/fpp3/useful-predictors.html" target="_blank" rel="noopener noreferrer">FPP3：Useful predictors（日历与傅里叶项）</a></li>
+<li><a href="https://otexts.com/fpp3/" target="_blank" rel="noopener noreferrer">Hyndman &amp; Athanasopoulos：Forecasting: Principles and Practice（第 3 版）</a></li>
+<li><a href="https://doi.org/10.1080/00031305.2017.1380080" target="_blank" rel="noopener noreferrer">Taylor &amp; Letham (2018)：Forecasting at Scale（Prophet 的季节性分解）</a></li>
+<li><a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html" target="_blank" rel="noopener noreferrer">scikit-learn：TimeSeriesSplit 文档</a></li>
+</ol>
+</section>
 
-<div class="highlight">
-<strong>关键洞察：</strong>日历特征对树模型特别有效。树模型无法"理解"时间连续性，但如果你把月份编码为 1-12，树模型可以学到"6-8 月销量高"这样的规则。但需要注意：月份和星期几这类循环特征（12 月之后是 1 月，周日之后是周一），最好同时保留数值编码和正弦/余弦编码，让模型有机会学到循环模式。
-</div>
-
-<h3>19.5 傅里叶项编码季节性</h3>
-
-<p>当我们拥有较长时间序列时，用离散的月份编码可能无法捕捉复杂的多周期模式。这时候 <strong>傅里叶项</strong>就派上了用场。</p>
-
-<p>傅里叶特征通过正弦和余弦函数对不同频率的周期进行编码。对于一个长度为 T 的序列，你可以添加如下特征：</p>
-
-<pre><code>import numpy as np
-
-def add_fourier_features(df, period, max_k):
-    """
-    为 DataFrame 添加傅里叶特征
-    period: 周期长度（如每周 7 天，每年 365 天）
-    max_k: 使用的正弦/余弦对数量
-    """
-    t = np.arange(len(df))
-    for k in range(1, max_k + 1):
-        df[f'sin_{period}_{k}'] = np.sin(2 * np.pi * k * t / period)
-        df[f'cos_{period}_{k}'] = np.cos(2 * np.pi * k * t / period)
-    return df</code></pre>
-
-<p>实际使用时，你可以同时为多个周期添加傅里叶项。例如对日数据：周期为 7（周周期）用 3 对正余弦，周期为 365.25（年周期）用 5-10 对。这些特征能够让线性模型也具备捕捉复杂周期性模式的能力。许多成熟的预测系统（包括 Prophet，我们将在第 21 章学到）内部就是靠傅里叶项来处理季节性的。</p>
-
-<h3>19.6 缺失值处理</h3>
-
-<p>时间序列的缺失值比普通表格数据更棘手，因为你不能简单删除一行——那会打乱时间顺序。</p>
-
-<p>常见的处理方法包括：</p>
-
-<table>
-    <tr><th>方法</th><th>适用场景</th><th>注意事项</th></tr>
-    <tr><td>前向填充（ffill）</td><td>缺失间隔较短，值变化缓慢</td><td>会引入滞后偏差</td></tr>
-    <tr><td>线性插值</td><td>趋势较平滑的场景</td><td>在跳跃点效果差</td></tr>
-    <tr><td>季节性插值</td><td>有强季节性的数据</td><td>用前后周期的同位置值填充</td></tr>
-    <tr><td>模型预测填充</td><td>缺失段较长</td><td>计算成本高，有引入模型偏差的风险</td></tr>
-    <tr><td>直接删除</td><td>缺失比例极小（&lt;1%）</td><td>仅适用于非连续的短缺失</td></tr>
-</table>
-
-<p>我的经验是：对大多数场景，<strong>前向填充加一个"是否被填充"的指示特征</strong>是一个简单而高效的 baseline。这个标记列告诉模型"这个值是真实观测还是填充的"，让模型自己决定是否信任它。</p>
-
-<h3>19.7 异常值检测</h3>
-
-<p>时序异常值可能是传感器故障、数据录入错误，也可能是一个真实的事件信号（比如某天销量暴增是因为促销）。在特征工程阶段，我们至少应该<strong>识别</strong>它们，而不是盲目处理。</p>
-
-<p>两种常用的检测方法：</p>
-
-<p><strong>Z-score 方法：</strong>计算每个点与均值的差值（以标准差为单位）。通常 |Z| &gt; 3 被认为是异常。但这个方法假设数据接近正态分布，且对极值敏感（因为均值和标准差本身会被异常值污染）。</p>
-
-<p><strong>IQR 方法：</strong>用中位数和四分位距，更加稳健。计算 <code>Q1 - 1.5*IQR</code> 和 <code>Q3 + 1.5*IQR</code> 之外的值为异常。但 IQR 方法不考虑时序的局部性——序列整体的正常值可能在局部看是异常。</p>
-
-<p>更推荐的时序异常检测是<strong>滚动窗口版本</strong>：用过去 N 个点的均值和标准差计算局部 Z-score，这样能感知局部波动。这也是为什么前面我们强调构造滚动标准差特征——它不仅对预测本身有用，还能帮你做异常检测。</p>
-
-<pre><code>def detect_anomalies(series, window=30, threshold=3):
-    """基于滚动窗口的 Z-score 异常检测"""
-    rolling_mean = series.rolling(window).mean()
-    rolling_std = series.rolling(window).std()
-    z_scores = (series - rolling_mean) / rolling_std
-    return z_scores.abs() > threshold</code></pre>
-
-<h3>19.8 特征工程检查清单</h3>
-
-<p>结束之前，给大家一份实用清单。每次做时序 ML 项目时，可以逐项检查：</p>
-
-<ul>
-    <li>所有滚动特征都加了 <code>shift(1)</code> 吗？</li>
-    <li>训练集和验证集在时间上没有交叉吗？</li>
-    <li>滞后特征的阶数有理论或统计依据吗？</li>
-    <li>日历特征覆盖了所有已知的周期性模式吗？</li>
-    <li>缺失值处理方式是合理的还是"偷懒"的？</li>
-    <li>异常值在预测目标中被正确处理了吗？（而不是简单删除）</li>
-</ul>
-
-<p>下一章，我们将把这一章的特征工程技巧付诸实践，学习 <strong>树模型在时序预测中的应用</strong>，以及一个著名的"99.7% 准确率"翻车故事。到那里你会发现，特征工程做得对不对，直接决定你是发顶会论文还是被领导约谈。</p>
-
-        <div class="footer-nav">
-            <a href="18.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="20.html">下一章 →</a>
-        </div>
-    </div>
-</div>
+<nav class="bottom-nav" aria-label="章节导航"><a href="18.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="20.html">下一章 →</a></nav>
+</article>
+</main>
 </div>
 </body>
 </html>
