@@ -1,202 +1,173 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第20章 树模型与时序预测</title>
-    <link rel="stylesheet" href="theme.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="树模型与时序预测：讲清梯度提升树的加性拟合机制、为什么它擅长非线性与交互、为何不能外推趋势，以及特征重要性的局限与时序验证中必须避免的 look-ahead bias。">
+<title>树模型与时序预测 · 时间序列分析</title>
+<link rel="stylesheet" href="../assets/css/article.css">
 </head>
 <body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-<li><a href="01.html">第1章 认识时间序列</a></li>
-<li><a href="02.html">第2章 时序的组成与分解</a></li>
-<li><a href="03.html">第3章 平稳性</a></li>
-<li><a href="04.html">第4章 自相关分析</a></li>
-<li><a href="05.html">第5章 指数平滑</a></li>
-<li><a href="06.html">第6章 时间序列回归</a></li>
-<li><a href="07.html">第7章 频谱分析入门</a></li>
-<li><a href="08.html">第8章 自回归模型(AR)</a></li>
-<li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-<li><a href="10.html">第10章 ARMA模型</a></li>
-<li><a href="11.html">第11章 差分与ARIMA</a></li>
-<li><a href="12.html">第12章 季节性ARIMA</a></li>
-<li><a href="13.html">第13章 建模实践与诊断</a></li>
-<li><a href="14.html">第14章 预测与评估</a></li>
-<li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-<li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-<li><a href="17.html">第17章 协整与误差修正模型</a></li>
-<li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-<li><a href="19.html">第19章 时序特征工程</a></li>
-<li><a href="20.html" class="active">第20章 树模型与时序预测</a></li>
-<li><a href="21.html">第21章 Prophet与自动预测</a></li>
-<li><a href="22.html">第22章 时序交叉验证</a></li>
-<li><a href="23.html">第23章 循环神经网络</a></li>
-<li><a href="24.html">第24章 卷积与时序</a></li>
-<li><a href="25.html">第25章 Transformer与时序</a></li>
-<li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-<li><a href="27.html">第27章 生产部署与MLOps</a></li>
-<li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-
-<h2>第20章 树模型与时序预测</h2>
-
-<p>大家好。上一章我们学习了如何把时间序列转换成 ML 模型能吃的特征表格。有了这张表格，接下来该用什么模型呢？</p>
-
-<p>如果去 Kaggle 的时序竞赛中逛一圈，你会发现几乎所有获奖方案都有一个共同的主角——<strong>树模型</strong>。XGBoost、LightGBM、CatBoost 这些梯度提升树早就取代了纯 ARIMA 和简单线性回归，成为工业界时序预测的事实标准。为什么？因为树模型天然适合时序预测的几个核心挑战。</p>
-
-<h3>20.1 为什么树模型适合时序数据</h3>
-
-<p>树模型在时序预测上有几个不可替代的优势：</p>
-
-<p><strong>非线性关系。</strong>真实世界的时序数据几乎从不是线性的。促销活动的边际效益递减、温度对电量的非线性影响（空调在极热和极冷时都开得更猛）、广告投入的饱和效应——树模型的决策边界天然能捕捉这些非线性关系，不需要你手动设计交互项或多项式变换。</p>
-
-<p><strong>特征交互自动捕捉。</strong>想象一下这个场景：某款冰激凌的销量 = 温度 × 是否周末 × 是否在学校附近。这种三层交互用线性模型需要手动构造，用树模型则会被自动捕捉——树的分裂过程本质就是在学特征之间的条件依赖关系。</p>
-
-<p><strong>对异常值相对鲁棒。</strong>时序数据中异常值几乎不可避免。树模型基于阈值做分裂，单点的异常值对整体树结构的影响有限——它不会被"拉偏"到异常点方向。相比之下，线性模型和神经网络对异常值的敏感度高得多。</p>
-
-<p><strong>缺失值友好。</strong>XGBoost 和 LightGBM 原生支持缺失值，它们会在训练时自动学习缺失值的最佳分裂方向。你不需要在预处理阶段做复杂的填充策略（尽管我们上一章讨论的特征工程仍然重要）。</p>
-
-<h3>20.2 XGBoost vs LightGBM vs CatBoost</h3>
-
-<p>三大主流梯度提升树框架各有特点，选择哪个取决于你的数据规模和场景：</p>
-
-<table>
-    <tr><th>特性</th><th>XGBoost</th><th>LightGBM</th><th>CatBoost</th></tr>
-    <tr><td>训练速度（大数据集）</td><td>中等</td><td>快</td><td>中等</td></tr>
-    <tr><td>类别特征处理</td><td>需手动编码</td><td>需手动编码</td><td>原生支持</td></tr>
-    <tr><td>缺失值处理</td><td>原生支持</td><td>原生支持</td><td>原生支持</td></tr>
-    <tr><td>默认参数效果</td><td>较好</td><td>一般（需调参）</td><td>好</td></tr>
-    <tr><td>GPU 加速</td><td>支持</td><td>支持</td><td>支持</td></tr>
-    <tr><td>时序预测常见程度</td><td>极高</td><td>高</td><td>中等</td></tr>
-    <tr><td>小数据集表现</td><td>好</td><td>可能过拟合</td><td>好</td></tr>
-</table>
-
-<p>总体建议：<strong>默认用 LightGBM</strong>——速度快、内存低、效果好。如果数据量小于 1 万行，用 XGBoost 或 CatBoost。如果特征中有大量类别变量，重点考虑 CatBoost（它不需要做 one-hot 编码）。</p>
-
-<h3>20.3 实战：XGBoost 时序预测管道</h3>
-
-<p>下面是一个完整的 XGBoost 时序预测流程，结合了上一章的特征工程技术：</p>
-
-<pre><code>import pandas as pd
-import numpy as np
-import xgboost as xgb
-from sklearn.metrics import mean_absolute_error
-
-# 1. 加载数据
-df = pd.read_csv('sales.csv', parse_dates=['date'])
-df = df.sort_values('date')
-
-# 2. 特征工程
-def make_features(df):
-    data = df.copy()
-    # 滞后特征
-    for lag in [1, 2, 3, 7, 14, 28]:
-        data[f'lag_{lag}'] = data['sales'].shift(lag)
-    # 滚动统计量
-    data['rolling_mean_7'] = data['sales'].shift(1).rolling(7).mean()
-    data['rolling_std_7'] = data['sales'].shift(1).rolling(7).std()
-    # 日历特征
-    data['dayofweek'] = data['date'].dt.dayofweek
-    data['month'] = data['date'].dt.month
-    data['is_weekend'] = data['dayofweek'].isin([5, 6]).astype(int)
-    return data
-
-df = make_features(df)
-df = df.dropna()
-
-# 3. 时序划分（不用随机划分！）
-train = df[df['date'] &lt; '2024-01-01']
-test = df[df['date'] &gt;= '2024-01-01']
-
-features = [c for c in df.columns if c not in ['date', 'sales']]
-X_train, y_train = train[features], train['sales']
-X_test, y_test = test[features], test['sales']
-
-# 4. 训练
-model = xgb.XGBRegressor(
-    n_estimators=500, learning_rate=0.05,
-    max_depth=6, subsample=0.8,
-    early_stopping_rounds=50
-)
-model.fit(X_train, y_train,
-    eval_set=[(X_test, y_test)],
-    verbose=False)
-
-# 5. 预测与评估
-y_pred = model.predict(X_test)
-print(f'MAE: {mean_absolute_error(y_test, y_pred):.2f}')</code></pre>
-
-<p>这段代码看起来很简单，但请注意第 3 步中的关键行：<code>train = df[df['date'] &lt; '2024-01-01']</code>。这里用的是<strong>时间划分</strong>，而不是随机抽样。很多初学者在这个地方犯错——用 <code>train_test_split</code> 默认的随机划分会导致模型"看到未来"，在验证集上表现异常好，上线后直接崩盘。</p>
-
-<h3>20.4 特征重要性：别被误导</h3>
-
-<p>树模型的 feature importance 是一个诱人的工具，但也是一个陷阱。XGBoost 默认提供三种重要性指标：</p>
-
+<a class="skip" href="#content">跳转至正文</a>
+<div class="page-shell">
+<nav class="aside" aria-label="课程与章内目录">
+<strong><a href="../index.html">时间序列分析</a></strong>
+<div class="separ"></div>
+<div class="toc-links">
+<a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a>
+<a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a>
+<a href="14.html">14　预测与评估</a><a href="15.html">15　波动率建模</a><a href="16.html">16　向量自回归 VAR</a><a href="17.html">17　协整与 VECM</a><a href="18.html">18　状态空间与卡尔曼滤波</a><a href="19.html">19　时序特征工程</a><a href="20.html" aria-current="page">20　树模型与时序预测</a>
+</div>
+<div class="separ"></div>
+<strong>本章路线</strong>
+<div class="toc-links">
+<a href="#why">01 · 为什么用树模型</a><a href="#boosting">02 · 梯度提升机制</a><a href="#compare">03 · 三大框架</a><a href="#extrapolate">04 · 不能外推</a><a href="#importance">05 · 特征重要性</a><a href="#validation">06 · 时序验证与泄露</a><a href="#tuning">07 · 调参实践</a><a href="#experiment">08 · Python 实验</a><a href="#wrap">09 · 小结</a>
+</div>
+<div class="separ"></div>
+<a href="../index.html#catalog">全部课程 →</a>
+</nav>
+<main id="content">
+<article class="article">
+<header>
+<p class="eyebrow">CHAPTER 20 / 28 · TREE MODELS</p>
+<h1>树模型与时序预测</h1>
+<p class="dek">上一章把序列变成了特征表格。这一章回答“该用什么模型”：梯度提升树为什么擅长非线性与交互，又为什么不能外推趋势；以及特征重要性和验证策略里最容易踩的坑。</p>
+<div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 泄露诊断</div>
+<p>如果去时序预测的竞赛或工业方案里看一眼，梯度提升树（XGBoost、LightGBM、CatBoost）几乎总在获奖名单里。它在很多实用场景里接替了经典 ARIMA，成为表格型预测的主力。原因不是“树模型更高级”，而是它恰好匹配了现实数据的几个性质。</p>
+<p>但树模型不是万能的，尤其在时间序列上有一处结构性弱点——<strong>无法外推</strong>。理解它的能力边界，比记住一套调参口诀重要得多。</p>
+</header>
+<section id="why" aria-labelledby="why-head">
+<h2 id="why-head">01 · 为什么用树模型</h2>
+<p>把序列变成特征表格后，剩下的就是回归问题。线性回归假设目标与特征近似线性可加；而真实数据往往不是这样。树模型在这几个方面有明显优势：</p>
 <ul>
-    <li><strong>weight</strong>：特征被用于分裂的次数。容易被取值多的特征主导。</li>
-    <li><strong>gain</strong>：特征在分裂时带来的平均信息增益。更可靠，但在多叉树中可能有偏。</li>
-    <li><strong>cover</strong>：特征覆盖的样本数。受特征取值分布影响大。</li>
+<li><strong>非线性</strong>：促销的边际效益递减、温度对用电量的 U 型影响、广告投入的饱和效应，树用阈值分裂就能分段逼近，无需手工构造多项式或交互项。</li>
+<li><strong>特征交互</strong>：销量可能取决于“温度 × 是否周末 × 是否节假日”。线性模型需显式相乘；树的分裂路径天然表达条件依赖。</li>
+<li><strong>对异常值相对稳健</strong>：分裂基于排序阈值，单个极端值对结构影响有限，而线性模型和神经网络会被它明显带偏。但这不是免疫——多个异常值仍会改变分裂点。</li>
+<li><strong>缺失值友好</strong>：XGBoost、LightGBM 在训练时会为缺失值学习默认分裂方向，无需先填充；但上一章的泄露与可得性原则仍然适用。</li>
 </ul>
+<p>这些优势有前提：树模型需要足够多的样本才能可靠分裂，并且它学到的是一张<strong>分段的常数映射</strong>。这一点直接导致了下一节要讲的外推缺陷。</p>
+</section>
 
-<div class="warning">
-<strong>踩坑警告：</strong>我见过一个团队用 XGBoost 预测股票收益率，特征重要性排名第一的是 lag_1（前一天的收益率），占到了总重要性的 60%。他们据此得出结论"股市有很强的动量效应"，兴高采烈地部署了策略。结果实盘一个月亏了 15%。问题出在哪里？Gain 指标偏爱在树根附近分裂的特征。lag_1 就是因为相关性高、最早被选中分裂，所以 gain 值虚高。真正有价值的其实是排名第二到第五的特征组合。永远不要只看 importance 排名就下结论——做 permutation importance 或 SHAP 值来交叉验证。
+<section id="boosting" aria-labelledby="boosting-head">
+<h2 id="boosting-head">02 · 梯度提升机制</h2>
+<p>梯度提升树不是“一棵大树”，而是<strong>许多浅树相加</strong>。每一轮新增一棵树去拟合当前模型的残差，并用学习率 ν（步长）缩小它的贡献，形成逐步逼近。</p>
+<div class="mathbox" data-math-scroll tabindex="0" role="region" style="max-width:100%;overflow-x:auto" aria-label="梯度提升的加性更新"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="第 m 轮模型等于上一轮模型加上学习率乘以新树对新树拟合负梯度"><mrow><msub><mi>F</mi><mi>m</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><msub><mi>F</mi><mrow><mi>m</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>+</mo><mi>ν</mi><mspace width="0.3em"/><msub><mi>h</mi><mi>m</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mo>,</mo><mspace width="1.2em"/><msub><mi>h</mi><mi>m</mi></msub><mo>≈</mo><munder><mi>arg min</mi><mrow><mi>h</mi><mo>∈</mo><mi class="normal">𝒯</mi></mrow></munder><munder><mo>∑</mo><mi>i</mi></munder><mi>ℓ</mi><mrow><mo>(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>,</mo><msub><mi>F</mi><mrow><mi>m</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo><mo>+</mo><mi>h</mi><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>)</mo><mo>)</mo></mrow></mrow></math>
+<div class="formula-note">ν ∈ (0,1] 是学习率：越小则每棵树贡献越少、需要的树越多，但通常更稳健。对平方损失，h<sub>m</sub> 就是在拟合负梯度（即残差）；对其他损失则是拟合广义残差。
 </div>
-
-<h3>20.5 时序预测中的超参数调优</h3>
-
-<p>树模型的超参数调优和普通 ML 任务有两点显著不同：</p>
-
-<p><strong>验证策略必须是时序的。</strong>不能用随机 K-Fold，必须用时序交叉验证（下一章我会详细讲）。在调优时，即使你觉得麻烦，也请至少使用一个单独的验证集（按时间分割），不要依赖 early stopping 在随机划分的验证集上的表现。</p>
-
-<p><strong>关注过拟合时域。</strong>时序模型很容易在近期数据上过拟合。一个实用的技巧是用滑动窗口做 backtest：在历史的不同时间点重复回测，取平均性能。如果模型在某个时间段表现特别差但在总体表现好，说明它可能只是在"记住"最近的模式。</p>
-
-<p>常用超参数调优方向：</p>
-
-<table>
-    <tr><th>参数</th><th>调优方向</th><th>时序场景建议</th></tr>
-    <tr><td><code>learning_rate</code></td><td>小（0.01-0.1）</td><td>时序数据噪声大，用小学习率 + 多轮迭代</td></tr>
-    <tr><td><code>max_depth</code></td><td>3-8</td><td>特征数少时浅（3-5），特征多时深（6-8）</td></tr>
-    <tr><td><code>subsample</code></td><td>0.6-0.9</td><td>时序数据样本间有相关性，subsample 不宜太小</td></tr>
-    <tr><td><code>min_child_weight</code></td><td>5-30</td><td>调高可减少对噪声的过拟合</td></tr>
-    <tr><td><code>lambda / alpha</code></td><td>0.1-10</td><td>正则化在时序中比表格数据更重要</td></tr>
-</table>
-
-<div class="highlight">
-<strong>关键洞察：</strong>时序预测中，特征工程对效果的影响远大于模型选择和超参数调优。我曾经做过一个对照实验：同样的 LightGBM 模型，一个用了精细的时序特征（滞后、滚动、日历、傅里叶项），一个只用了原始值和少量滞后。前者的 MAE 比后者低了 37%，而两者的超参数只是默认值。把时间花在特征工程上，回报远高于调参。
 </div>
+<figure id="20-boosting"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="b-title b-desc"><title id="b-title">梯度提升逐轮相加逼近非线性函数</title><desc id="b-desc">三个面板显示：第 1 棵树的分段阶梯、前 10 棵树相加后的更细分段、累计更多棵树后逼近平滑的非线性曲线。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">加性拟合：每棵树修正上一轮的残差，分段越来越细</text><g><rect x="30" y="70" width="270" height="180" rx="10" fill="#f6faf8" stroke="#dce7e4"/><path d="M50 220 L70 220 L70 180 L110 180 L110 150 L150 150 L150 190 L190 190 L190 120 L230 120 L230 100 L280 100" fill="none" stroke="#d06d4d" stroke-width="2.6"/><text x="44" y="266" class="n">第 1 棵（深 1）：粗阶梯</text></g><g transform="translate(310,0)"><rect x="30" y="70" width="270" height="180" rx="10" fill="#f6faf8" stroke="#dce7e4"/><path d="M50 215 L80 215 L80 175 L110 175 L110 205 L140 205 L140 145 L170 145 L170 160 L200 160 L200 110 L230 110 L230 130 L280 130" fill="none" stroke="#d06d4d" stroke-width="2.6"/><text x="44" y="266" class="n">前 10 棵：分段变细</text></g><g transform="translate(620,0)"><rect x="30" y="70" width="270" height="180" rx="10" fill="#f6faf8" stroke="#dce7e4"/><path d="M50 210 Q110 100 165 150 Q220 200 280 96" fill="none" stroke="#147f80" stroke-width="3"/><text x="44" y="266" class="n">很多棵：逼近平滑曲线</text></g><text x="30" y="290" class="n">橙色为单棵浅树，青色为累计模型；横轴为特征，纵轴为预测。</text></svg>
+<figcaption>梯度提升的加性过程：单棵浅树只能给出粗糙阶梯，相加后分段越来越细，逐渐逼近平滑的非线性函数。<strong>“学习率 × 树数”的积决定容量。</strong>图为机制示意。</figcaption></figure>
+<p>这解释了两个常见现象：<strong>学习率越小、树越多，模型越平滑也更慢</strong>；而树太深会让单棵树记住噪声，泛化变差。所谓“调参”，本质上是在加性拟合的容量与稳定性之间取平衡。</p>
+</section>
 
-<h3>20.6 著名的 99.7% 准确率翻车故事</h3>
-
-<p>这个故事值得每一个做时序预测的人铭记于心。几年前，一位量化分析师在某个论坛上兴奋地展示自己的模型——用 XGBoost 预测某只股票的涨跌方向，达到了<strong>99.7% 的准确率</strong>。论坛瞬间炸锅，有人质疑、有人崇拜、有人想掏钱买策略。</p>
-
-<p>但很快，有人指出了问题：他的代码里有这样一行：</p>
-
-<pre><code>from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)</code></pre>
-
-<p><code>train_test_split</code> 默认是<strong>随机划分</strong>的。而股票数据是高度自相关的时间序列——昨天的价格和今天高度相似。随机划分意味着测试集中大量样本的"邻居"在训练集中。换句话说，模型不是在"预测"未来，而是在"回忆"过去见过的类似模式。这不叫预测，这叫<strong>look-ahead bias</strong>。</p>
-
-<p>这就是 99.7% 真相。当你看到时序预测中离谱的高分时，第一反应应该是：<strong>是不是哪里泄露了？</strong>大多数时候，答案都是肯定的。</p>
-
-<h3>20.7 下一站：自动化</h3>
-
-<p>树模型给了我们强大的预测能力，但也带来了新的问题：特征工程要手动做，超参数要手动调，季节性和节假日要手动编码。有没有更自动化的工具？</p>
-
-<p>有的。下一章我们要学习 <strong>Prophet 和 Nixtla 生态</strong>，它们把时序预测的很多重复劳动自动化了。Prophet 的"点几下就能预测"理念和 Nixtla 的规模化预测工具，会让你的工作效率提升一个数量级。但理解和手动做特征工程的能力，仍然是你的核心竞争力——自动化工具出了问题，最终还是靠你对特征和数据的理解来排查。</p>
-
-        <div class="footer-nav">
-            <a href="19.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="21.html">下一章 →</a>
-        </div>
-    </div>
+<section id="compare" aria-labelledby="compare-head">
+<h2 id="compare-head">03 · 三大框架的差异</h2>
+<p>XGBoost、LightGBM、CatBoost 都是梯度提升树，但工程实现不同，适合的场景也不同。下表汇总的是各自官方文档与论文都明确声明的实现特征，而非效果排名：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">特性</th><th scope="col">XGBoost</th><th scope="col">LightGBM</th><th scope="col">CatBoost</th></tr></thead><tbody>
+<tr><td>默认生长方式</td><td>按层生长（level-wise）</td><td>按叶生长（leaf-wise）</td><td>对称（oblivious）树</td></tr>
+<tr><td>类别特征</td><td>需手动编码</td><td>需手动编码（有 categorical 支持）</td><td>原生目标统计编码</td></tr>
+<tr><td>缺失值</td><td>原生默认方向</td><td>原生默认方向</td><td>原生处理</td></tr>
+<tr><td>大数据训练速度</td><td>中等</td><td>通常较快</td><td>中等</td></tr>
+</tbody></table>
 </div>
+<p>选择上的稳妥建议是：样本量很大、追求速度时优先试 LightGBM；类别特征多且不想手工编码时优先试 CatBoost；需要成熟生态和丰富接口时用 XGBoost。但“哪个好”最终应<strong>由你自己数据上的时序交叉验证决定</strong>，而不是别人的榜单。三者对超参数都敏感，默认参数不一定适合时序数据。</p>
+</section>
+
+<section id="extrapolate" aria-labelledby="extrapolate-head">
+<h2 id="extrapolate-head">04 · 树模型不能外推趋势</h2>
+<p>这是树模型在时序上最重要的结构性限制：<strong>树的预测是分段常数，永远落在训练数据的取值范围内</strong>。如果把“趋势”直接作为特征或目标，测试期的取值超出训练范围时，树只能输出边界值，无法延续上升或下降。</p>
+<figure id="20-extrapolate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="e-title e-desc"><title id="e-title">树模型与线性模型对外推趋势的差异</title><desc id="e-desc">左半段为训练区间：上升趋势上线性拟合与树的分段阶毯都能贴合；右半段为外推区间：线性拟合延续趋势，而树的预测停在上一个阶毯、保持水平。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">趋势外推：线性延续，树只能停在边界值</text><line x1="70" y1="240" x2="900" y2="240" stroke="#cfdedb"/><rect x="70" y="70" width="480" height="170" fill="#eef4f2"/><text x="220" y="92" class="n">训练区间</text><text x="640" y="92" class="n">外推区间（超出训练范围）</text><line x1="550" y1="70" x2="550" y2="240" stroke="#9fb0ad" stroke-dasharray="6 5"/><line x1="70" y1="230" x2="900" y2="80" stroke="#147f80" stroke-width="3"/><path d="M70 230 L150 230 L150 200 L240 200 L240 170 L330 170 L330 140 L420 140 L420 110 L550 110 L900 110" fill="none" stroke="#d06d4d" stroke-width="2.8"/><text x="700" y="102" class="n" fill="#b2563a">树的预测变水平</text><text x="700" y="70" class="n" fill="#0f6a6b">线性预测继续上升</text><text x="70" y="270" class="n">图为机制示意：真实外推行为还取决于特征里是否包含可外推的时间趋势或差分特征。</text></svg>
+<figcaption>绿色为线性拟合、橙色为树的分段常数拟合：训练区间内两者都能贴合趋势，但进入外推区间后，线性继续上升，树的预测停在上一个阶梯。<strong>这是树模型在时序上的结构性限制，不是调参能解决的。</strong></figcaption></figure>
+<p>实践中有两种应对：一是把趋势<strong>显式建模</strong>（如先差分、去趋势，或用确定性的时间/傅里叶特征让模型学到趋势形状——但傅里叶外推只在周期内可信）；二是把树模型的残差交给一个能外推的组件（线性回归、ARIMA）。直接把“时间序号 t”当作特征能让树在训练区间内拟合趋势，但一旦 t 超出训练范围，同样会撞到边界值。</p>
+</section>
+
+<section id="importance" aria-labelledby="importance-head">
+<h2 id="importance-head">05 · 特征重要性的陷阱</h2>
+<p>树模型自带特征重要性，但它容易被误读。XGBoost 默认提供的三种指标含义不同：</p>
+<ul>
+<li><strong>weight</strong>：被用作分裂的次数，容易被取值多（高基数）的特征主导；</li>
+<li><strong>gain</strong>：分裂带来的平均信息增益，常用但偏向靠近树根、相关性高的特征；</li>
+<li><strong>cover</strong>：分裂覆盖的样本数，受特征取值分布影响大。</li>
+</ul>
+<p>它们都描述“模型内部如何使用特征”，<strong>不等于因果效应</strong>，也不能用来断言“某个特征驱动了目标”。更可靠的做法是用置换重要性（permutation importance）评估打乱一个特征后模型误差的上升，或用 SHAP 值看单个预测的归因。两者都应<strong>在按时间划分的验证集上计算</strong>，否则同样会被泄露污染。</p>
+<div class="callout"><strong>常见误用：</strong>把 gain 排名第一的滞后特征解读为“存在动量效应”。高相关特征常被优先选作根节点分裂，gain 自然偏高；相关≠因果，且高的 gain 也可能来自泄露。结论必须回到时序验证和可解释的机制上。</div>
+</section>
+
+<section id="validation" aria-labelledby="validation-head">
+<h2 id="validation-head">06 · 时序验证与 look-ahead bias</h2>
+<p>树模型不会自己尊重时间顺序，它把每一行当作独立样本。如果直接用 <code>train_test_split</code> 的默认<strong>随机划分</strong>，测试行的时间窗口就与训练行交织在一起。对于高度自相关的序列，“未来行”的相似邻居很可能就在训练集里，模型不是在预测未来，而是在回忆临近的过去。这就是 look-ahead bias（前视偏差）。</p>
+<figure id="20-split"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="s-title s-desc"><title id="s-title">随机划分与时间划分的对比</title><desc id="s-desc">上行随机划分中训练样本（青）与测试样本（橙）在时间上交替出现，测试点的近邻往往在训练集里；下行按时间划分中训练在前、测试在后，测试点无法看到邻近未来。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">随机划分为何在自相关序列上虚高</text>
+<text x="30" y="86" class="n">随机划分：训练（青）与测试（橙）在时间上交织</text>
+<g><!-- row1 --><rect x="30" y="96" width="40" height="30" fill="#147f80"/><rect x="70" y="96" width="40" height="30" fill="#d06d4d"/><rect x="110" y="96" width="40" height="30" fill="#147f80"/><rect x="150" y="96" width="40" height="30" fill="#d06d4d"/><rect x="190" y="96" width="40" height="30" fill="#147f80"/><rect x="230" y="96" width="40" height="30" fill="#d06d4d"/><rect x="270" y="96" width="40" height="30" fill="#147f80"/><rect x="310" y="96" width="40" height="30" fill="#d06d4d"/><rect x="350" y="96" width="40" height="30" fill="#147f80"/><rect x="390" y="96" width="40" height="30" fill="#d06d4d"/><rect x="430" y="96" width="40" height="30" fill="#147f80"/><rect x="470" y="96" width="40" height="30" fill="#d06d4d"/><rect x="510" y="96" width="40" height="30" fill="#147f80"/><rect x="550" y="96" width="40" height="30" fill="#d06d4d"/><rect x="590" y="96" width="40" height="30" fill="#147f80"/><rect x="630" y="96" width="40" height="30" fill="#d06d4d"/><rect x="670" y="96" width="40" height="30" fill="#147f80"/><rect x="710" y="96" width="40" height="30" fill="#d06d4d"/><rect x="750" y="96" width="40" height="30" fill="#147f80"/><rect x="790" y="96" width="40" height="30" fill="#d06d4d"/><rect x="830" y="96" width="40" height="30" fill="#147f80"/><rect x="870" y="96" width="40" height="30" fill="#d06d4d"/></g>
+<text x="30" y="170" class="n">时间划分：训练（青）在前，测试（橙）在后，中间留 h 步间隔</text>
+<g><!-- row2 --><rect x="30" y="182" width="40" height="30" fill="#147f80"/><rect x="70" y="182" width="40" height="30" fill="#147f80"/><rect x="110" y="182" width="40" height="30" fill="#147f80"/><rect x="150" y="182" width="40" height="30" fill="#147f80"/><rect x="190" y="182" width="40" height="30" fill="#147f80"/><rect x="230" y="182" width="40" height="30" fill="#147f80"/><rect x="270" y="182" width="40" height="30" fill="#147f80"/><rect x="310" y="182" width="40" height="30" fill="#147f80"/><rect x="350" y="182" width="40" height="30" fill="#147f80"/><rect x="390" y="182" width="40" height="30" fill="#147f80"/><rect x="430" y="182" width="40" height="30" fill="#147f80"/><rect x="470" y="182" width="40" height="30" fill="#147f80"/><rect x="510" y="182" width="40" height="30" fill="#147f80"/><rect x="550" y="182" width="40" height="30" fill="#f0e3dc" stroke="#d06d4d" stroke-dasharray="4 3"/><rect x="590" y="182" width="40" height="30" fill="#147f80"/><rect x="630" y="182" width="40" height="30" fill="#147f80"/><rect x="670" y="182" width="40" height="30" fill="#147f80"/><rect x="710" y="182" width="40" height="30" fill="#147f80"/><rect x="750" y="182" width="40" height="30" fill="#d06d4d"/><rect x="790" y="182" width="40" height="30" fill="#d06d4d"/><rect x="830" y="182" width="40" height="30" fill="#d06d4d"/><rect x="870" y="182" width="40" height="30" fill="#d06d4d"/></g>
+<text x="30" y="252" class="n">每格为一期。随机划分让相邻两期分属训练与测试，模型可“回忆”到近邻，分数虚高；</text><text x="30" y="276" class="n">时间划分下测试点只能靠更早的历史预测，分数才能反映真实外推能力。</text></svg>
+<figcaption>上行随机划分让训练（青）与测试（橙）在时间上交替，相邻期的“时间邻居”会把答案泄给模型；下行按时间划分则训练在前、测试在后。<strong>步长 h 的间隔防止重叠窗口跨界。</strong>图为机制示意。</figcaption></figure>
+<p>本节只给出结论方向，具体时序交叉验证的方法与代码放在<a href="22.html">第 22 章</a>。这里的核心原则是：<strong>训练数据的时间必须早于验证数据</strong>，并在两者之间留出至少 h 步的间隔，避免重叠窗口跨界。</p>
+<div class="callout"><strong>看到离谱的高分先怀疑泄露：</strong>时序任务上 0.99 的 R² 或 99% 的方向准确度通常是前视偏差、目标泄露或随机划分造成的，而不是模型强大。排掉泄露后再评估。</div>
+</section>
+
+<section id="tuning" aria-labelledby="tuning-head">
+<h2 id="tuning-head">07 · 调参与实践建议</h2>
+<p>树模型的超参数对时序数据很敏感，以下是官方文档中常见参数与它们在时序场景下的调整方向：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">参数</th><th scope="col">作用</th><th scope="col">时序场景取向</th></tr></thead><tbody>
+<tr><td><code>learning_rate</code></td><td>每棵树的步长</td><td>取小（0.01–0.1）+ 更多轮，更稳健</td></tr>
+<tr><td><code>max_depth / num_leaves</code></td><td>单树容量</td><td>特征少时调浅（3–5），特征多可加深</td></tr>
+<tr><td><code>subsample</code></td><td>行采样比例</td><td>时序样本相关，不宜过小</td></tr>
+<tr><td><code>min_child_weight</code></td><td>叶节点最小权重</td><td>调高可抑制对噪声的过拟合</td></tr>
+<tr><td><code>lambda / alpha</code></td><td>L2 / L1 正则</td><td>时序噪声大，正则往往比表格任务更重要</td></tr>
+</tbody></table>
+</div>
+<p>两点必须强调：第一，<strong>验证策略必须是时序的</strong>，用随机 K-Fold 调出来的参数会在上线时失效；第二，<strong>特征工程对结果的影响通常大于模型选择</strong>，与其反复调参，不如先把滞后、滚动、日历与傅里叶特征做对、把泄露排干净。</p>
+</section>
+
+<section id="experiment" aria-labelledby="experiment-head">
+<h2 id="experiment-head">08 · Python 实验：随机划分如何制造假高分</h2>
+<p>下面用 numpy 造一条随机游走序列，特征用上一期值 y<sub>t−1</sub>，目标为当期 y<sub>t</sub>，预测器用最简单的 1-近邻（在特征空间里找最接近的训练点）。对比随机划分与时间划分两种验证方式。只依赖 numpy。</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>import numpy as np
+rng = np.random.default_rng(2000)
+n = 400
+steps = rng.standard_normal(n)
+y = np.cumsum(steps * 0.5)             # 随机游走：相邻值高度相似
+x, tgt = y[:-1], y[1:]                 # 特征 y_{t-1}，目标 y_t
+
+def r2(a, b):
+    return 1 - ((a - b) ** 2).sum() / ((a - a.mean()) ** 2).sum()
+
+def knn(tr, te):
+    pred = np.array([tgt[tr[np.argmin(np.abs(x[tr] - x[i]))]] for i in te])
+    return r2(tgt[te], pred)
+
+idx = rng.permutation(len(x)); cut = int(len(x) * 0.8)
+print("random-split R2 =", round(knn(idx[:cut], idx[cut:]), 4))   # ≈ 0.8938
+split = int(len(x) * 0.8)
+print("time-split   R2 =", round(knn(np.arange(split), np.arange(split, len(x))), 4))</code></pre>
+<p>预期结果：随机划分得到的 R² 约为 0.89，而按时间划分只有约 0.63。差距不是模型变强，而是随机划分让测试点的“时间邻居”出现在训练集里。<strong>这是合成数据上的机制验证，不代表任何真实序列的可预测水平</strong>。</p>
+</section>
+
+<section id="wrap" aria-labelledby="wrap-head">
+<h2 id="wrap-head">09 · 小结</h2>
+<p>树模型把上一章的特征表格变成一个强大的非线性回归器：加性拟合并行处理非线性与交互，对异常值相对稳健。但它的分段常数本质意味着<strong>不能外推趋势</strong>，特征重要性和随机划分又是两个最容易让人得出错误结论的地方。</p>
+<div class="thought"><strong>使用树模型前请先回答：</strong>验证是按时间划分并留了间隔吗？特征里有没有同期或未来信息？目标需要外推趋势吗（若是，树的输出会撞到边界）？得出的重要性结论经过置换或 SHAP 交叉验证了吗？</div>
+</section>
+
+<section id="references">
+<h2>进一步阅读与技术核对</h2>
+<p>引用指向梯度提升的原始论文与三个框架的官方文档。</p>
+<ol class="refs">
+<li><a href="https://doi.org/10.1214/11-AOS949" target="_blank" rel="noopener noreferrer">Friedman (2001)：Greedy Function Approximation（梯度提升）</a></li>
+<li><a href="https://xgboost.readthedocs.io/en/stable/tutorials/model.html" target="_blank" rel="noopener noreferrer">XGBoost：提升树模型与特征重要性接口</a></li>
+<li><a href="https://lightgbm.readthedocs.io/en/stable/Features.html" target="_blank" rel="noopener noreferrer">LightGBM：leaf-wise 生长与类别特征支持</a></li>
+<li><a href="https://catboost.ai/docs/concepts/algorithm-main-stages_cat-to-numberic.html" target="_blank" rel="noopener noreferrer">CatBoost：类别特征的目标统计编码</a></li>
+</ol>
+</section>
+
+<nav class="bottom-nav" aria-label="章节导航"><a href="19.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="21.html">下一章 →</a></nav>
+</article>
+</main>
 </div>
 </body>
 </html>
