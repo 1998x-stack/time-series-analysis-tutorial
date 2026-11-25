@@ -1,222 +1,156 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第25章 Transformer与时序</title>
-    <link rel="stylesheet" href="theme.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Transformer 与时序：自注意力让任意两个时间步直接交互，缩放点积与因果掩码保证不看到未来；位置编码、二次复杂度与分解如何适配时序，以及 Informer、Autoformer、PatchTST、TFT 的核心机制与选型。">
+<title>Transformer 与时序 · 时间序列分析</title>
+<link rel="stylesheet" href="../assets/css/article.css">
 </head>
 <body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html" class="active">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
-        <h2>第25章 Transformer与时序</h2>
-
-        <p>大家好！前两章我们分别学习了RNN和CNN在时间序列中的应用。RNN通过循环结构传递信息，CNN通过卷积核提取局部模式。这两种方法有一个共同点：它们都依赖"局部"信息来逐步构建全局理解——RNN一步一步地传递状态，CNN一层一层地扩大感受野。</p>
-
-        <p>但如果我说：有一种架构可以让序列中的任意两个位置直接"对话"，不管它们相隔多远——你会不会觉得这很神奇？这就是Transformer的核心思想：自注意力机制（Self-Attention）。它彻底改变了自然语言处理，也正在深刻改变时间序列分析的面貌。</p>
-
-        <h3>25.1 自注意力机制</h3>
-
-        <p>自注意力的核心操作是：对于序列中的每个元素，计算它与其他所有元素的相关性（注意力权重），然后用这些权重对所有元素的值做加权求和。具体来说，每个输入通过三个不同的线性变换得到 Query（查询）、Key（键）和 Value（值）：</p>
-
-        <ul>
-            <li><strong>Query：</strong>当前元素"想找什么"</li>
-            <li><strong>Key：</strong>每个元素"是什么"的标签</li>
-            <li><strong>Value：</strong>每个元素"携带什么信息"</li>
-        </ul>
-
-        <p>注意力权重通过 Query 和 Key 的点积计算，经过 softmax 归一化后，对 Value 做加权平均。这个操作可以并行计算所有时间步，不受序列长度的限制——这是RNN做不到的。</p>
-
-        <pre><code># 缩放点积注意力（Scaled Dot-Product Attention）
-import torch
-import torch.nn.functional as F
-
-def scaled_dot_product_attention(Q, K, V, mask=None):
-    # Q, K, V: (batch, seq_len, d_model)
-    scores = torch.matmul(Q, K.transpose(-2, -1))
-    scores = scores / (K.size(-1) ** 0.5)  # 缩放
-    if mask is not None:
-        scores = scores.masked_fill(mask == 0, float('-inf'))
-    attn_weights = F.softmax(scores, dim=-1)
-    # (batch, seq_len, seq_len) @ (batch, seq_len, d_model)
-    return torch.matmul(attn_weights, V), attn_weights</code></pre>
-
-        <div class="highlight">
-            <strong>关键洞察：</strong>自注意力计算得到一个 (seq_len, seq_len) 的注意力矩阵。第 i 行第 j 列的值表示第 i 个时间步对第 j 个时间步的"关注程度"。这个矩阵是对序列中所有依赖关系的完整建模——远距离的依赖、季节性的周期、突变的跳变，全部一目了然。
-        </div>
-
-        <h3>25.2 Transformer的时序适配</h3>
-
-        <p>标准的Transformer架构（Vaswani et al., 2017）包含编码器和解码器，每层由多头自注意力（Multi-Head Attention）和前馈网络组成。但将Transformer直接应用于时间序列有几个挑战：</p>
-
-        <p><strong>位置编码</strong>（Positional Encoding）：自注意力本身没有顺序感——它对序列的排列是不变的（permutation invariant）。因此必须显式地加入位置信息。原始Transformer使用正弦/余弦函数编码，但在时序任务中，更常见的是使用可学习的位置编码（Learned Positional Encoding），或者直接对时间戳本身做嵌入（如小时、星期、月份）。</p>
-
-        <p><strong>计算复杂度</strong>：标准自注意力的复杂度是 O(L²)，其中 L 是序列长度。对于长序列（比如一年365天的日数据），直接计算是不现实的。这激发了后面要讲的一系列高效变体。</p>
-
-        <p><strong>时序分解</strong>：时间序列具有趋势、季节性和残差等成分。直接将原始序列喂给Transformer可能效果不佳，更好的做法是先在架构内嵌入分解模块，让模型自动分离不同成分。</p>
-
-        <h3>25.3 关键架构：Informer</h3>
-
-        <p>Informer（Zhou et al., 2021）是专为长序列时间序列预测（LSTF）设计的Transformer变体。它的核心创新是<strong>ProbSparse自注意力机制</strong>。</p>
-
-        <p>ProbSparse的直觉是：在标准的自注意力矩阵中，大多数注意力权重都非常小（接近零），真正重要的只有少数几个"头"（dominant attention pairs）。Informer使用KL散度来度量每个Query的"重要性"，只保留最重要的Top-k个Query参与注意力计算。这使复杂度从 O(L²) 降低到 O(L log L)。</p>
-
-        <p>此外，Informer还引入了自注意力蒸馏（Self-Attention Distilling）和生成式解码器（Generative Decoder），进一步提升了长序列预测的效率和精度。在2021年发布时，Informer在多个长序列数据集上大幅超越了当时的SOTA方法。</p>
-
-        <h3>25.4 关键架构：Autoformer</h3>
-
-        <p>Autoformer（Wu et al., 2021）走了一条不同的路——它用<strong>自相关机制</strong>（Auto-Correlation Mechanism）替代了自注意力。</p>
-
-        <p>自相关机制的灵感来源于信号处理中的自相关函数。它通过计算序列与其延迟版本之间的相似度，直接发现序列中的周期性依赖关系。相比自注意力，自相关机制有两个优势：一是复杂度低（O(L log L)），二是天然适合发现季节性模式。</p>
-
-        <p>Autoformer还将时序分解（Trend-Seasonality Decomposition）深度集成到了Transformer的每一层中，让模型能够逐步分离出趋势成分和季节成分。这个设计非常优雅——它把传统时间序列分析的思想（分解）和深度学习的表达能力结合在了一起。</p>
-
-        <h3>25.5 关键架构：PatchTST</h3>
-
-        <p>PatchTST（Nie et al., 2023）提出了一个简单但有效的思路：将时间序列分割成多个"补丁"（Patch），每个补丁包含连续的几个时间步（如16步），然后在这些补丁上应用Transformer。</p>
-
-        <p>Patch的思路有两个好处：第一，减少了序列长度——如果原始序列有1024步，每个patch包含16步，那么Transformer只需要处理64个patch，计算量大降；第二，每个patch本身就是一个局部语义单元（如"一周的模式"、"一个季节的片段"），比单个时间点更有意义。</p>
-
-        <p>PatchTST采用了通道独立（Channel Independent）的策略——在多变量序列中，每个变量单独处理，而不是把所有变量拼接到特征维度。这简化了模型设计，且在大多数数据集上效果更好。</p>
-
-        <h3>25.6 关键架构：Temporal Fusion Transformer</h3>
-
-        <p>Temporal Fusion Transformer（TFT, Lim et al., 2019）是Google为多步预测设计的Transformer变体，它的最大特色是<strong>可解释性</strong>。</p>
-
-        <p>TFT包含多个精心设计的模块：变量选择网络（Variable Selection Network）自动选择重要的输入变量；门控残差网络（GRN）提供灵活的跳过连接；而最重要的是，它的多头注意力层可以生成时间维度的注意力权重，告诉我们模型在做预测时"关注了历史中的哪些时间点"。</p>
-
-        <p>这种可解释性在实践中非常宝贵——业务方不仅想知道预测结果，还想知道"为什么这么预测"。TFT的注意力热力图可以直观地展示哪些历史时间点对当前预测最重要，极大增强了模型的可信度。</p>
-
-        <div class="tip">
-            <strong>实用建议：</strong>如果你是第一次将Transformer用于时间序列，可以按这个顺序尝试：先试 PatchTST（简单高效），如果数据量很大且序列很长，试 Informer；如果数据有明显的季节性，试 Autoformer；如果业务方要求可解释性，TFT 是最佳选择。
-        </div>
-
-        <h3>25.7 2026年的视角：混合架构成为主流</h3>
-
-        <p>到了2026年，纯粹的"单架构"方法越来越少见了。从2024年以来的趋势看，<strong>多模块混合架构</strong>（Hybrid Architecture）已经成为时序预测的主流。典型的混合设计包括：</p>
-
-        <ul>
-            <li><strong>CNN + Transformer：</strong>CNN先做下采样和局部特征提取，减少序列长度，再交给Transformer做全局建模。</li>
-            <li><strong>CNN + LSTM + Attention：</strong>CNN提取局部模式，LSTM建模中等长度的依赖，注意力层做长程依赖的精准聚焦。这种"三段式"设计在很多工业场景中效果出色。</li>
-            <li><strong>多尺度融合：</strong>在不同时间尺度（日、周、月）上分别建模，再将各尺度的表示融合。</li>
-        </ul>
-
-        <p>站在现在的角度看，RNN、CNN和Transformer并非"三选一"的关系，而是各有专长的组件。好的时间序列模型，往往是这些组件在合适的位置协同工作的产物。</p>
-
-        <h3>25.8 架构对比</h3>
-
-        <p>下表总结了本章介绍的几种Transformer变体的关键特性，方便你在选型时参考：</p>
-
-        <table>
-            <tr>
-                <th>架构</th>
-                <th>核心机制</th>
-                <th>复杂度</th>
-                <th>长序列</th>
-                <th>可解释性</th>
-                <th>推荐场景</th>
-            </tr>
-            <tr>
-                <td>标准Transformer</td>
-                <td>自注意力</td>
-                <td>O(L²)</td>
-                <td>差</td>
-                <td>中</td>
-                <td>短序列基线</td>
-            </tr>
-            <tr>
-                <td>Informer</td>
-                <td>ProbSparse注意力</td>
-                <td>O(L log L)</td>
-                <td>优</td>
-                <td>中</td>
-                <td>超长序列</td>
-            </tr>
-            <tr>
-                <td>Autoformer</td>
-                <td>自相关机制</td>
-                <td>O(L log L)</td>
-                <td>优</td>
-                <td>高</td>
-                <td>强季节性数据</td>
-            </tr>
-            <tr>
-                <td>PatchTST</td>
-                <td>Patch + Transformer</td>
-                <td>O(L log L)</td>
-                <td>优</td>
-                <td>中</td>
-                <td>通用首选</td>
-            </tr>
-            <tr>
-                <td>TFT</td>
-                <td>可解释注意力</td>
-                <td>O(L²)</td>
-                <td>中</td>
-                <td>极高</td>
-                <td>需要解释的业务场景</td>
-            </tr>
-            <tr>
-                <td>CNN-LSTM-Attn混合</td>
-                <td>三段式融合</td>
-                <td>中等</td>
-                <td>优</td>
-                <td>中</td>
-                <td>工业实战首选</td>
-            </tr>
-        </table>
-
-        <div class="warning">
-            <strong>选型提醒：</strong>不要盲目追求"最新"或"最复杂"的架构。很多情况下，一个调好参的LSTM或TCN就能达到95%以上的效果。尝试简单的模型、建立可靠的基线，再逐步引入更复杂的架构——这是实践中最高效的工作流。
-        </div>
-
-        <h3>25.9 小结</h3>
-
-        <p>本章我们学习了Transformer在时间序列中的应用。从自注意力机制开始，了解了它如何让序列任意两个位置直接"对话"；然后学习了Informer、Autoformer、PatchTST和TFT四种专门为时序设计的Transformer变体，它们各有侧重；最后，我们从2026年的视角看到了混合架构成为主流的趋势。</p>
-
-        <p>到这里，深度学习的三个篇章就结束了。这三章（RNN、CNN、Transformer）共同构成了现代时序预测的深度学习基石。但深度学习的脚步从未停下——下一章，我们将探讨更前沿的方向：基础模型（Foundation Models）和扩散模型（Diffusion Models）在时间序列中的应用。这些模型正在重新定义"时序预测能达到什么程度"这个问题的答案。</p>
-
-        <div class="footer-nav">
-            <a href="24.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="26.html">下一章 →</a>
-        </div>
-    </div>
+<a class="skip" href="#content">跳转至正文</a>
+<div class="page-shell">
+<nav class="aside" aria-label="课程与章内目录">
+<strong><a href="../index.html">时间序列分析</a></strong>
+<div class="separ"></div>
+<div class="toc-links">
+<a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a>
+<a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a>
+<a href="14.html">14　预测与评估</a><a href="15.html">15　波动率建模</a><a href="16.html">16　向量自回归 VAR</a><a href="17.html">17　协整与 VECM</a><a href="18.html">18　状态空间与卡尔曼滤波</a><a href="19.html">19　时序特征工程</a><a href="20.html">20　树模型与时序预测</a><a href="21.html">21　Prophet 与自动预测</a><a href="22.html">22　时序交叉验证</a><a href="23.html">23　循环神经网络</a><a href="24.html">24　卷积与时序</a><a href="25.html" aria-current="page">25　Transformer 与时序</a>
 </div>
+<div class="separ"></div>
+<strong>本章路线</strong>
+<div class="toc-links">
+<a href="#attention">01 · 自注意力</a><a href="#matrix">02 · 注意力矩阵</a><a href="#adapt">03 · 时序适配</a><a href="#models">04 · 代表性架构</a><a href="#compare">05 · 架构对比</a><a href="#hybrid">06 · 选型建议</a><a href="#experiment">07 · Python 实验</a><a href="#wrap">08 · 小结</a>
+</div>
+<div class="separ"></div>
+<a href="../index.html#catalog">全部课程 →</a>
+</nav>
+<main id="content">
+<article class="article">
+<header>
+<p class="eyebrow">CHAPTER 25 / 28 · TRANSFORMERS</p>
+<h1>Transformer 与时序</h1>
+<p class="dek">RNN 靠循环逐步传递状态，CNN 靠卷积逐层扩大视野。自注意力换了一种方式：让序列中任意两个位置直接交互。这一章讲清缩放点积注意力、因果掩码，以及 Informer、Autoformer、PatchTST、TFT 这些时序变体。</p>
+<div class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 因果掩码</div>
+<p>自注意力对每个位置都计算它与所有位置的权重，因此<strong>路径长度恒为 1</strong>——不管两个时间步隔多远，它们之间都是一步。这是它区别于 RNN/CNN 的根本特性，也是它在长依赖任务上有吸引力的原因。</p>
+<p>代价是计算量随序列长度二次增长，而且它本身没有顺序感，需要显式加入位置信息。围绕这两点的改进，正是过去几年时序 Transformer 的主线。</p>
+</header>
+<section id="attention" aria-labelledby="attention-head">
+<h2 id="attention-head">01 · 自注意力</h2>
+<p>每个输入向量通过三个线性变换得到 Query（我想找什么）、Key（我是什么）与 Value（我携带什么）。用 Q 与 K 的点积算相关度，softmax 归一化后对 V 加权求和，就得到输出：</p>
+<div class="mathbox" data-math-scroll tabindex="0" role="region" style="max-width:100%;overflow-x:auto" aria-label="缩放点积注意力"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="注意力等于 softmax 作用于 Q 乘 K 转置除以根号 d_k，再乘 V"><mrow><mi>Attn</mi><mo>(</mo><mi>Q</mi><mo>,</mo><mi>K</mi><mo>,</mo><mi>V</mi><mo>)</mo><mo>=</mo><mi>softmax</mi><mrow><mo>(</mo><mfrac><mrow><mi>Q</mi><msup><mi>K</mi><mi mathvariant="normal">⊤</mi></msup></mrow><msqrt><msub><mi>d</mi><mi>k</mi></msub></msqrt></mfrac><mo>)</mo></mrow><mi>V</mi></mrow></math>
+<div class="formula-note">除以 √d<sub>k</sub> 是缩放：当维度 d<sub>k</sub> 很大时，点积的方差会变大，softmax 会变得过于尖锐，缩放把梯度拉回合理范围。
+</div>
+</div>
+<p>逐元素地看，第 i 个位置对第 j 个位置的注意力权重是：</p>
+<div class="mathbox" data-math-scroll tabindex="0" role="region" style="max-width:100%;overflow-x:auto" aria-label="注意力权重"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block" aria-label="注意力权重等于 softmax 对 i 的归一化的 e_ij"><mrow><msub><mi>a</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><mfrac><mrow><mi>exp</mi><mo>(</mo><msub><mi>e</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>)</mo></mrow><mrow><munder><mo>∑</mo><msup><mi>j</mi><mo>′</mo></msup></munder><mi>exp</mi><mo>(</mo><msub><mi>e</mi><mrow><mi>i</mi><msup><mi>j</mi><mo>′</mo></msup></mrow></msub><mo>)</mo></mrow></mfrac><mo>,</mo><mspace width="1.2em"/><msub><mi>e</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>=</mo><mfrac><mrow><msub><mi>q</mi><mi>i</mi></msub><mo>⋅</mo><msub><mi>k</mi><mi>j</mi></msub></mrow><msqrt><msub><mi>d</mi><mi>k</mi></msub></msqrt></mfrac></mrow></math>
+<div class="formula-note">每行权重之和为 1。预测时要加<strong>因果掩码</strong>：把 j &gt; i 的 e<sub>ij</sub> 置为 −∞，softmax 后这些权重为 0，保证第 i 步不看到未来。
+</div>
+</div>
+<figure id="25-attention"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" role="img" aria-labelledby="a-title a-desc"><title id="a-title">自注意力与因果掩码下的注意力矩阵</title><desc id="a-desc">左侧是 Q、K、V 三个投影，中间是下三角的注意力矩阵（上三角被因果掩码置零），右侧是加权求和得到输出。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.b{font-size:14px;font-weight:700}</style><rect x="1" y="1" width="958" height="318" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">每个位置对所有位置算权重；上三角被因果掩码置零</text>
+<text x="70" y="90" class="n">输入 x</text><g><rect x="60" y="104" width="56" height="34" rx="6" fill="#f1f5f4" stroke="#dce7e4"/><text x="88" y="126" class="n" text-anchor="middle">x₁</text><rect x="60" y="144" width="56" height="34" rx="6" fill="#f1f5f4" stroke="#dce7e4"/><text x="88" y="166" class="n" text-anchor="middle">x₂</text><rect x="60" y="184" width="56" height="34" rx="6" fill="#f1f5f4" stroke="#dce7e4"/><text x="88" y="206" class="n" text-anchor="middle">x₃</text></g>
+<path d="M120 161 L180 140" stroke="#7461ba" stroke-width="2"/><path d="M120 161 L180 180" stroke="#7461ba" stroke-width="2"/><text x="184" y="120" class="n">Q = xW_Q</text><text x="184" y="200" class="n">K = xW_K</text><g></g>
+<g transform="translate(430,70)"><rect x="0" y="0" width="150" height="150" rx="8" fill="#fff" stroke="#dce7e4"/><text x="-10" y="-8" class="n">注意力矩阵 (i→j)</text><rect x="10" y="10" width="40" height="40" fill="#147f80"/><rect x="55" y="10" width="40" height="40" fill="#eef2f1"/><rect x="100" y="10" width="40" height="40" fill="#eef2f1"/><rect x="10" y="55" width="40" height="40" fill="#147f80"/><rect x="55" y="55" width="40" height="40" fill="#147f80"/><rect x="100" y="55" width="40" height="40" fill="#eef2f1"/><rect x="10" y="100" width="40" height="40" fill="#147f80"/><rect x="55" y="100" width="40" height="40" fill="#147f80"/><rect x="100" y="100" width="40" height="40" fill="#147f80"/><text x="30" y="36" class="n" text-anchor="middle" fill="#fff">高</text><text x="75" y="84" class="n" text-anchor="middle" fill="#fff">高</text><text x="120" y="129" class="n" text-anchor="middle" fill="#fff">高</text><text x="75" y="36" class="n" text-anchor="middle">0</text><text x="120" y="36" class="n" text-anchor="middle">0</text><text x="120" y="84" class="n" text-anchor="middle">0</text></g>
+<text x="450" y="248" class="n" text-anchor="middle">灰色为被 mask 的未来位置（权重 0）</text>
+<path d="M600 145 L680 145" stroke="#147f80" stroke-width="2.4"/><text x="618" y="136" class="n">× V</text><g><rect x="690" y="104" width="56" height="34" rx="6" fill="#e8f4f0" stroke="#147f80"/><text x="718" y="126" class="n" text-anchor="middle">y₁</text><rect x="690" y="144" width="56" height="34" rx="6" fill="#e8f4f0" stroke="#147f80"/><text x="718" y="166" class="n" text-anchor="middle">y₂</text><rect x="690" y="184" width="56" height="34" rx="6" fill="#e8f4f0" stroke="#147f80"/><text x="718" y="206" class="n" text-anchor="middle">y₃</text></g>
+<text x="690" y="250" class="n">输出 = 权重·V</text></svg>
+<figcaption>自注意力给出一个 (L×L) 的注意力矩阵，行是“谁在看”，列是“看向谁”。预测任务必须加因果掩码，把矩阵未来部分置零。<strong>着色高亮行展示：第 i 步只对 j ≤ i 有非零权重。</strong>图为机制示意。</figcaption></figure>
+</section>
+
+<section id="matrix" aria-labelledby="matrix-head">
+<h2 id="matrix-head">02 · 注意力矩阵与因果掩码</h2>
+<p>把 softmax 后的权重写成矩阵，它就变成了一个<strong>数据驱动的加权平均</strong>：每一行是一个概率分布，和为 1；第 i 行第 j 列越大，说明第 i 步越依赖第 j 步。与固定权重的移动平均不同，这里的权重随输入内容变化。</p>
+<p>多头注意力把这一过程并行地做 h 次（不同投影），分别捕捉不同的依赖模式，再拼接投影。它不是 h 个独立的模型，而是同一层内并行学习多个关系视角。</p>
+<p>在预测场景中，必须遮住未来：将 j &gt; i 的得分置为 −∞，softmax 后权重为 0。这与<a href="24.html">上一章</a>因果卷积是同一目标——<strong>只看历史，不看未来</strong>。不做遮蔽的自注意力会让每个时间步看到自己的未来，相当于在训练时就把答案泄露给了模型。</p>
+</section>
+
+<section id="adapt" aria-labelledby="adapt-head">
+<h2 id="adapt-head">03 · 将 Transformer 适配到时序</h2>
+<p>把标准 Transformer 直接用于时间序列有三个需要处理的问题：</p>
+<ul>
+<li><strong>位置信息</strong>：自注意力本身是置换不变的——打乱输入顺序，输出只是跟着置换。因此必须显式加入位置编码。原论文用正弦/余弦函数；时序任务中也常用可学习位置编码，或直接把时间戳特征（小时、星期、月）嵌入。</li>
+<li><strong>二次复杂度</strong>：注意力矩阵为 L×L，计算与内存随序列长度平方增长。年尺度日数据（L≈365）尚可，更长就需要稀疏/低秩/分块等手法。</li>
+<li><strong>分解需求</strong>：时序包含趋势、季节与残差，直接把原始序列喂进去未必最好，常见做法是在网络内部嵌入分解模块。</li>
+</ul>
+<p>下面的代表性架构，本质上就沿这三个方向做取舍。</p>
+</section>
+
+<section id="models" aria-labelledby="models-head">
+<h2 id="models-head">04 · 代表性架构</h2>
+<p><strong>Informer</strong>（Zhou 等，2021）：针对长序列预测，提出 ProbSparse 自注意力。其直觉是注意力矩阵中大多数权重很小，真正重要的只有少数查询；它用 KL 散度估计每个查询的重要性，只保留 Top-k 个查询参与计算，把复杂度从 O(L²) 降到 O(L log L)，并配合自注意力蒸馏与生成式解码器。论文报告它在多个长序列数据集上优于当时的基线。</p>
+<p><strong>Autoformer</strong>（Wu 等，2021）：用<strong>自相关机制</strong>替代自注意力，通过度量序列与其平移版本的相关性来直接发现周期；并把序列分解嵌入每一层，逐步分离趋势与季节。它天然贴合强季节性数据。</p>
+<p><strong>PatchTST</strong>（Nie 等，2023）：把序列切成若干<strong>补丁</strong>（如每 16 步一个），在补丁上做注意力。好处有二：注意力长度从 L 降到 L/S（S 为补丁长度），计算量随之下降到与（L/S）² 相关；每个补丁是一个局部语义单元，比单点更有信息。它采用<strong>通道独立</strong>策略，多变量时每个变量单独建模。</p>
+<p><strong>TFT</strong>（Lim 等，2019）：面向多步预测，强调可解释性。变量选择网络自动筛选输入变量，门控残差网络控制信息流，注意力权重可回答“预测时关注了哪些历史时刻”。</p>
+</section>
+
+<section id="compare" aria-labelledby="compare-head">
+<h2 id="compare-head">05 · 架构对比</h2>
+<figure id="25-efficiency"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="ef-title ef-desc"><title id="ef-title">注意力代价随序列长度增长</title><desc id="ef-desc">横轴为序列长度，纵轴为相对计算量。全自注意力按长度的平方增长，ProbSparse 与自相关按 L log L 增长，补丁方法因长度变为 L/S 而更低。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">序列越长，全注意力的代价涨得越快</text><line x1="90" y1="240" x2="880" y2="240" stroke="#cfdedb"/><line x1="90" y1="90" x2="90" y2="240" stroke="#cfdedb"/><path d="M90 236 C400 232 600 180 860 70" fill="none" stroke="#d06d4d" stroke-width="2.8"/><path d="M90 236 C400 226 620 190 860 130" fill="none" stroke="#147f80" stroke-width="2.8"/><path d="M90 236 C400 232 620 216 860 196" fill="none" stroke="#7461ba" stroke-width="2.8"/><text x="640" y="80" class="n" fill="#b2563a">全注意力 O(L²)</text><text x="650" y="146" class="n" fill="#0f6a6b">稀疏 / 自相关 O(L log L)</text><text x="650" y="210" class="n" fill="#5a4a92">补丁 ∝(L/S)²</text><text x="30" y="140" class="n">相对代价</text><text x="820" y="266" class="n">序列长度 →</text><text x="30" y="285" class="n">曲线为量级示意，不代表具体实现常数；实际速度还取决于硬件与批大小。</text></svg>
+<figcaption>复杂度差异随序列长度放大：全自注意力按长度平方增长，稀疏/自相关降到近似 O(L log L)，补丁方法通过把注意力长度降到 L/S 进一步下降。<strong>长序列上的选型，先看代价增长量级。</strong>图为量级示意。</figcaption></figure>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">架构</th><th scope="col">核心机制</th><th scope="col">注意力代价</th><th scope="col">可解释性</th><th scope="col">适用</th></tr></thead><tbody>
+<tr><td>标准 Transformer</td><td>全自注意力</td><td>O(L²)</td><td>中</td><td>短序列基线</td></tr>
+<tr><td>Informer</td><td>ProbSparse 稀疏注意力</td><td>O(L log L)</td><td>中</td><td>超长序列</td></tr>
+<tr><td>Autoformer</td><td>自相关 + 逐层分解</td><td>O(L log L)</td><td>较高</td><td>强季节性</td></tr>
+<tr><td>PatchTST</td><td>补丁 + 通道独立</td><td>随 (L/S)² 增长</td><td>中</td><td>通用首选</td></tr>
+<tr><td>TFT</td><td>变量选择 + 可解释注意力</td><td>O(L²)</td><td>高</td><td>需要解释的多变量预测</td></tr>
+</tbody></table>
+</div>
+<p>表中复杂度是各方法论文声明的量级，实际速度还取决于实现、硬件与批大小，选型应以自己数据上的速度—效果权衡为准。</p>
+</section>
+
+<section id="hybrid" aria-labelledby="hybrid-head">
+<h2 id="hybrid-head">06 · 选型建议与混合架构</h2>
+<p>近年的一个常见做法是<strong>混合架构</strong>：用卷积或线性层先下采样、抽局部特征，再交给注意力做全局建模；或在不同时间尺度上分别建模再融合。CNN、RNN、Transformer 并非三选一，而是可组合的组件。</p>
+<div class="callout"><strong>提醒：</strong>不要盲目追求最新最复杂的架构。很多任务上一个调好的 LSTM/TCN 或季节性基线就足够好。正确顺序是：先建可靠基线（如 seasonal-naive），再逐步引入复杂模型，并用<a href="22.html">第 22 章</a>的时序验证证明增益。</div>
+</section>
+
+<section id="experiment" aria-labelledby="experiment-head">
+<h2 id="experiment-head">07 · Python 实验：带因果掩码的缩放点积注意力</h2>
+<p>下面用 numpy 实现缩放点积注意力，加因果掩码，并验证两件事：每行权重之和为 1；第 i 步对 j &gt; i 的权重为 0（不看未来）。只依赖 numpy。</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>import numpy as np
+rng = np.random.default_rng(2501)
+L, dk = 4, 8
+Q = rng.standard_normal((L, dk)); K = rng.standard_normal((L, dk)); V = rng.standard_normal((L, dk))
+
+scores = Q @ K.T / np.sqrt(dk)
+mask = np.triu(np.ones((L, L)), k=1).astype(bool)   # 上三角（j &gt; i）
+scores = np.where(mask, -np.inf, scores)
+w = np.exp(scores - scores.max(axis=1, keepdims=True))   # 稳定 softmax
+w = w / w.sum(axis=1, keepdims=True)
+out = w @ V
+
+print("行和:", np.round(w.sum(axis=1), 6))              # 全为 1
+print("未来权重:", w[mask].max())                       # 0.0
+assert np.allclose(w.sum(axis=1), 1) and w[mask].max() == 0
+assert out.shape == (L, dk)</code></pre>
+<p>预期结果：每行注意力权重之和为 1，被掩码的未来位置权重恰为 0，输出形状与 V 一致。<strong>这是对注意力与掩码语义的形状验证，不代表任何训练效果</strong>。</p>
+</section>
+
+<section id="wrap" aria-labelledby="wrap-head">
+<h2 id="wrap-head">08 · 小结</h2>
+<p>自注意力让任意两个时间步直接交互，代价是二次复杂度与需要显式位置信息。Informer、Autoformer、PatchTST、TFT 分别从稀疏化、自相关、分块化与可解释性方向改进。预测时<strong>因果掩码不可省</strong>，否则就是前视泄露。</p>
+<div class="thought"><strong>用 Transformer 做预测前请先回答：</strong>位置信息如何注入？序列长度带来的注意力代价能否承受？因果掩码写对了吗（用实验验证过未来权重为 0）？与 seasonal-naive/LSTM 基线比过吗（用时序验证）？</div>
+<p>到这里，深度学习三章（RNN、CNN、Transformer）告一段落。下一章将从更宏观的视角看时序预测的前沿：基础模型与扩散模型。</p>
+</section>
+
+<section id="references">
+<h2>进一步阅读与技术核对</h2>
+<p>引用指向 Transformer 与几个时序变体的原始文献。</p>
+<ol class="refs">
+<li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener noreferrer">Vaswani et al. (2017)：Attention Is All You Need</a></li>
+<li><a href="https://arxiv.org/abs/2012.07436" target="_blank" rel="noopener noreferrer">Zhou et al. (2021)：Informer（ProbSparse 自注意力）</a></li>
+<li><a href="https://arxiv.org/abs/2106.13008" target="_blank" rel="noopener noreferrer">Wu et al. (2021)：Autoformer（自相关机制）</a></li>
+<li><a href="https://arxiv.org/abs/2211.14730" target="_blank" rel="noopener noreferrer">Nie et al. (2023)：PatchTST（补丁与通道独立）</a></li>
+<li><a href="https://arxiv.org/abs/1912.09363" target="_blank" rel="noopener noreferrer">Lim et al. (2019)：Temporal Fusion Transformers</a></li>
+</ol>
+</section>
+
+<nav class="bottom-nav" aria-label="章节导航"><a href="24.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="26.html">下一章 →</a></nav>
+</article>
+</main>
 </div>
 </body>
 </html>
