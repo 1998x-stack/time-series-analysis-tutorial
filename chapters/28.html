@@ -1,533 +1,267 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第28章 综合实战项目</title>
-    <link rel="stylesheet" href="theme.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="综合实战项目：把前 27 章的方法组织成一条端到端流水线——数据清洗、EDA、baseline、统计模型、梯度提升、深度模型、集成、评估与部署，并总结时序预测的常见错误与后续学习路径。">
+<title>综合实战项目 · 时间序列分析</title>
+<link rel="stylesheet" href="../assets/css/article.css">
 </head>
 <body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html" class="active">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<a class="skip" href="#content">跳转至正文</a>
+<div class="page-shell">
+<nav class="aside" aria-label="课程与章内目录">
+<strong><a href="../index.html">时间序列分析</a></strong>
+<div class="separ"></div>
+<div class="toc-links">
+<a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a>
+<a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a>
+<a href="14.html">14　预测与评估</a><a href="15.html">15　波动率建模</a><a href="16.html">16　向量自回归 VAR</a><a href="17.html">17　协整与 VECM</a><a href="18.html">18　状态空间与卡尔曼滤波</a><a href="19.html">19　时序特征工程</a><a href="20.html">20　树模型与时序预测</a><a href="21.html">21　Prophet 与自动预测</a><a href="22.html">22　时序交叉验证</a><a href="23.html">23　循环神经网络</a><a href="24.html">24　卷积与时序</a><a href="25.html">25　Transformer 与时序</a><a href="26.html">26　基础模型与扩散模型</a><a href="27.html">27　生产部署与 MLOps</a><a href="28.html" aria-current="page">28　综合实战项目</a>
+</div>
+<div class="separ"></div>
+<strong>本章路线</strong>
+<div class="toc-links">
+<a href="#plan">01 · 项目全景</a><a href="#clean">02 · 数据清洗</a><a href="#eda">03 · EDA</a><a href="#baseline">04 · Baseline</a><a href="#stats">05 · 统计模型</a><a href="#ml">06 · 梯度提升</a><a href="#dl">07 · 深度模型</a><a href="#ensemble">08 · 集成</a><a href="#compare">09 · 评估对比</a><a href="#deploy">10 · 部署模拟</a><a href="#errors">11 · 常见错误</a><a href="#roadmap">12 · 学习路径</a><a href="#wrap">13 · 结语</a>
+</div>
+<div class="separ"></div>
+<a href="../index.html#catalog">全部课程 →</a>
+</nav>
+<main id="content">
+<article class="article">
+<header>
+<p class="eyebrow">CHAPTER 28 / 28 · CAPSTONE PROJECT</p>
+<h1>综合实战项目：一条端到端的预测流水线</h1>
+<p class="dek">前 27 章逐个拆解了工具。这一章把它们重新组装起来，走一遍从原始数据到上线监控的完整路径，并说清哪些环节最容易出错。</p>
+<p class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 结论边界</p>
+</header>
+<p>前 27 章是拆开学：平稳性、ARIMA、树模型、神经网络、验证与部署。这一章把它们装回一条完整的流水线，以“预测未来 14 天日销量”为例——库存调拨、营销预算、人员排班都需要它。周期清晰、特征多样、容错空间有限，很适合当作综合练习。</p>
+<p>先交代一个前提：下面涉及的数值只是<strong>教学示意</strong>。要在真实项目里复现结论，请替换成你自己的数据与业务口径，并用<a href="22.html">第 22 章</a>的时序验证重新比较。本章的目标是<strong>流程与判断力</strong>，不是某个固定排行榜。</p>
 
-        <h2>第28章 综合实战项目</h2>
+<section id="plan" aria-labelledby="plan-head">
+<h2 id="plan-head">01 · 项目全景</h2>
+<p>整条流水线分 8 个阶段，前后有依赖，不能随意打乱：</p>
+<figure id="28-pipeline"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" role="img" aria-labelledby="pl-title pl-desc"><title id="pl-title">端到端时序预测流水线的八个阶段</title><desc id="pl-desc">上行四个阶段：数据清洗、探索性分析、baseline、统计模型；下行四个阶段：梯度提升、深度模型、集成、部署模拟。上行末端折返到下行起点，顺序完成整条流水线。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12px;fill:#41706e}</style><rect x="1" y="1" width="958" height="328" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="36" class="h">从原始数据到上线监控：八个阶段</text>
+<g><rect x="30" y="62" width="200" height="58" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="130" y="86" class="n" text-anchor="middle">① 数据清洗</text><text x="130" y="106" class="k" text-anchor="middle">缺失 · 促销 · 节假日</text>
+<rect x="260" y="62" width="200" height="58" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="360" y="86" class="n" text-anchor="middle">② EDA</text><text x="360" y="106" class="k" text-anchor="middle">趋势 · 季节 · 自相关</text>
+<rect x="490" y="62" width="200" height="58" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="590" y="86" class="n" text-anchor="middle">③ Baseline</text><text x="590" y="106" class="k" text-anchor="middle">naive · seasonal-naive</text>
+<rect x="720" y="62" width="200" height="58" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="820" y="86" class="n" text-anchor="middle">④ 统计模型</text><text x="820" y="106" class="k" text-anchor="middle">ETS · SARIMA</text></g>
+<g><rect x="30" y="196" width="200" height="58" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="130" y="220" class="n" text-anchor="middle">⑤ 梯度提升</text><text x="130" y="240" class="k" text-anchor="middle">特征工程 + 树模型</text>
+<rect x="260" y="196" width="200" height="58" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="360" y="220" class="n" text-anchor="middle">⑥ 深度模型</text><text x="360" y="240" class="k" text-anchor="middle">LSTM · PatchTST</text>
+<rect x="490" y="196" width="200" height="58" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="590" y="220" class="n" text-anchor="middle">⑦ 集成</text><text x="590" y="240" class="k" text-anchor="middle">平均 · Stacking</text>
+<rect x="720" y="196" width="200" height="58" rx="8" fill="#fff4e3" stroke="#916c22"/><text x="820" y="220" class="n" text-anchor="middle">⑧ 部署模拟</text><text x="820" y="240" class="k" text-anchor="middle">API · 监控 · 回滚</text></g>
+<g stroke="#9fb0ad" stroke-width="2" fill="none"><path d="M230 91 h24" marker-end="url(#pl-a)"/><path d="M460 91 h24" marker-end="url(#pl-a)"/><path d="M690 91 h24" marker-end="url(#pl-a)"/><path d="M230 225 h24" marker-end="url(#pl-a)"/><path d="M460 225 h24" marker-end="url(#pl-a)"/><path d="M690 225 h24" marker-end="url(#pl-a)"/></g>
+<defs><marker id="pl-a" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#9fb0ad"/></marker></defs>
+<path d="M820 120 V160 H130 V196" fill="none" stroke="#9fb0ad" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#pl-a)"/>
+<text x="470" y="300" class="n">每层都有不确定性：模型再强，也治不好脏数据与漏掉的外部事件。</text></svg>
+<figcaption>上行先立基（清洗→EDA→baseline→统计），再进入下行的高容量模型与集成，最后回到工程侧的部署与监控。<strong>阶段顺序是方法论示意；真实项目常需要回头迭代。</strong></figcaption></figure>
+</section>
 
-        <p>欢迎来到这门课程的最后一章。如果说前面的 27 章是逐一学习工具箱里的每一样工具，那么这一章就是真正的实战——我们要打开工具箱，把所有工具用在一个完整的项目上。</p>
-
-        <p>我们的任务：为一家电商平台做日销售额预测。业务部门需要提前 14 天知道每天的销售额预期，以便做库存调拨、营销预算和人员排班。这是一个典型的中期时序预测问题，周期清晰、特征丰富、容错空间有限。</p>
-
-        <h3>28.1 项目全景</h3>
-
-        <p>整个项目分为 8 个阶段，我们会按顺序逐一完成：</p>
-
-        <ol>
-            <li><strong>数据清洗</strong> -- 处理缺失值、异常值、节假日效应</li>
-            <li><strong>探索性数据分析（EDA）</strong> -- 趋势、季节性、相关性分析</li>
-            <li><strong>Baseline 模型</strong> -- Naive、Seasonal Naive</li>
-            <li><strong>统计模型</strong> -- ETS、ARIMA、SARIMA</li>
-            <li><strong>机器学习模型</strong> -- XGBoost 特征工程 + 预测</li>
-            <li><strong>深度学习模型</strong> -- LSTM、PatchTST</li>
-            <li><strong>集成模型</strong> -- Stacking ensemble</li>
-            <li><strong>部署模拟</strong> -- 导出模型、封装 API、记录指标</li>
-        </ol>
-
-        <h3>28.2 数据清洗</h3>
-
-        <p>假设我们拿到了过去 3 年的日销售额数据。第一步永远是数据清洗。对于电商数据，常见的坑包括：</p>
-
-        <ul>
-            <li><strong>促销日异常峰值</strong>：双十一的销售额可能是平时的 50 倍。这些点是真实值，但如果不做处理，模型会认为这是"正常的季节性"。通常的做法是把促销日单独标记为一个特征，而不是直接删除。</li>
-            <li><strong>数据缺失</strong>：某些天可能因为系统故障没有记录。对于短时间的缺失（1-2 天），可以用前后线性插值；对于较长周期的缺失，考虑用季节性均值填充。</li>
-            <li><strong>节假日效应</strong>：春节、国庆等重大节假日期间，电商销售额波动剧烈。需要用节假日日历作为外部特征。</li>
-        </ul>
-
-        <pre><code># 数据清洗伪代码
+<section id="clean" aria-labelledby="clean-head">
+<h2 id="clean-head">02 · 数据清洗：促销、缺失与节假日</h2>
+<p>拿到数据后的第一步永远是清洗。电商日销量常见的几个坑：</p>
+<ul>
+<li><strong>促销日尖峰</strong>：大促当天的销量可能是平日的数十倍。这些是<strong>真实值</strong>，不能当异常删掉；正确做法是把它标成一个特征（是否促销、促销力度），让模型知道峰值有因。</li>
+<li><strong>缺失</strong>：系统故障可能造成断记。短缺口（1–2 天）可用线性插值；长缺口更宜用季节性均值，并同时标记“该段为插值”。</li>
+<li><strong>节假日效应</strong>：春节、国庆等周期漂移的节日，需要用日历作为外部特征。</li>
+</ul>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code># 数据清洗示意图：插值 + 事件标记
 import pandas as pd
-import numpy as np
 
-# 加载原始数据
-df = pd.read_csv("daily_sales.csv", parse_dates=["date"])
-df = df.set_index("date").sort_index()
+df = pd.read_csv("daily_sales.csv", parse_dates=["date"]).set_index("date").sort_index()
+df["sales"] = df["sales"].interpolate(method="linear", limit=2)   # 仅补 2 天内的缺口
+df["is_promo"] = df.index.isin(pd.to_datetime(promo_dates)).astype(int)  # 促销标记
+# 节假日标记可借助 holidays 等库，或用自建日历；这里只演示结构
+df["dow"] = df.index.dayofweek            # 星期几效应是电商最关键的模式之一</code></pre>
+</section>
 
-# 1. 缺失值插值（最多连续缺失 3 天）
-df["sales"] = df["sales"].interpolate(method="linear", limit=3)
+<section id="eda" aria-labelledby="eda-head">
+<h2 id="eda-head">03 · EDA：先建立节奏感</h2>
+<p>跑模型前先用 EDA 建立对数据的直觉。建议至少做这几件事：</p>
+<ul>
+<li>画原始序列图，看长期趋势与明显的周期；</li>
+<li>按周/月/年聚合，判断季节周期长度；</li>
+<li>画<a href="04.html">ACF/PACF</a>，初步判断自相关结构；</li>
+<li>做 <a href="02.html">STL 分解</a>，拆出趋势、季节与残差；</li>
+<li>量化促销/节假日的影响幅度。</li>
+</ul>
+<div class="callout"><strong>电商数据的共同节奏：</strong>周内效应（如周末高于工作日）往往非常明显。它也是 seasonal-naive（周期取 7）常常很强的根本原因。若你的 EDA 完全看不到周内周期，先怀疑数据管道或用户群特殊，而不是直接上更复杂的模型。</div>
+</section>
+<section id="baseline" aria-labelledby="baseline-head">
+<h2 id="baseline-head">04 · Baseline：先知道“不用模型”有多强</h2>
+<p>任何项目都先用两个最简模型立底：<strong>naive</strong>（预测值等于最后一个观测）与 <strong>seasonal-naive</strong>（预测值等于上一个同季节周期的观测，周周期取 7）。它们不是“随便看看”——如果复杂模型赢不了它们，就不能宣称有价值。</p>
+<p>比较时不要只看 MAE/RMSE，推荐同时报 <strong>MASE</strong>（Mean Absolute Scaled Error），因为它用朴素预测的误差做分母，使不同序列、不同尺度可比：</p>
+<div class="mathbox" data-math-scroll tabindex="0" role="region" style="max-width:100%;overflow-x:auto" aria-label="MASE 的定义"><math display="block" aria-label="MASE 等于 H 步预测误差绝对值均值除以训练集一阶差分绝对值的均值"><mfrac><mrow><mfrac><mn>1</mn><mi>H</mi></mfrac><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>H</mi></munderover><mrow><mo>|</mo><msub><mi>e</mi><mi>t</mi></msub><mo>|</mo></mrow></mrow><mrow><mfrac><mn>1</mn><mrow><mi>T</mi><mo>−</mo><mn>1</mn></mrow></mfrac><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>2</mn></mrow><mi>T</mi></munderover><mrow><mo>|</mo><msub><mi>y</mi><mi>t</mi></msub><mo>−</mo><msub><mi>y</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>|</mo></mrow></mrow></mfrac></math>
+<div class="formula-note">分母是训练集上一步朴素预测的平均绝对误差（即一阶差分绝对值的均值），仅作尺度基准。<strong>MASE &lt; 1 意味着比一步朴素预测更好</strong>（与季节性的关系取决于分母的选择）。</div>
+</div>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>import numpy as np
 
-# 2. 标记促销日（假设已知促销日期列表）
-promo_dates = ["2024-11-11", "2024-12-12", "2025-06-18"]
-df["is_promo"] = df.index.isin(promodates).astype(int)
+def naive(train, h):
+    return np.full(h, train[-1])
 
-# 3. 添加节假日特征
-import holidays
-cn_holidays = holidays.China()
-df["is_holiday"] = [1 if d in cn_holidays else 0 for d in df.index]
+def seasonal_naive(train, h, s=7):
+    rep = int(np.ceil(h / s))
+    return np.tile(train[-s:], rep)[:h]
 
-# 4. 对异常值做 winsorize（裁剪极端值）
-lower, upper = df["sales"].quantile([0.01, 0.99])
-df["sales"] = df["sales"].clip(lower, upper)</code></pre>
+# 评估：同时报 MAE 与 MASE（分母为训练集一步朴素误差）
+def mase(y_true, y_pred, y_train):
+    scale = np.mean(np.abs(np.diff(y_train)))
+    return float(np.mean(np.abs(np.asarray(y_true) - y_pred)) / scale)</code></pre>
+<p>如果 seasonal-naive 的 MASE 已经很小（例如明显小于 1），说明数据里的周内结构很强，后续模型的提升空间主要在外部特征与非线性上，而不是在“记住周期”。</p>
+</section>
 
-        <h3>28.3 EDA：理解数据的节奏</h3>
-
-        <p>在跑任何模型之前，先用 EDA 建立对数据的直觉。关键的 EDA 步骤：</p>
-
-        <ul>
-            <li>绘制原始序列图，观察长期趋势和明显的周期性</li>
-            <li>按周、月、年做聚合可视化，判断季节性周期长度</li>
-            <li>画 ACF/PACF 图，初步判断自相关结构</li>
-            <li>做 STL 分解，拆出 trend、seasonal、residual 三个分量</li>
-            <li>观察促销日和节假日对销售的影响幅度</li>
-        </ul>
-
-        <div class="tip">
-            <strong>EDA 提示：</strong>在电商数据中，"星期几"效应往往非常明显——通常周末销售额高于工作日，周一可能最低。这个模式在绝大多数电商数据集中都成立。如果你的 EDA 没有发现这个模式，说明数据可能有问题，或者你的用户群体非常特殊。
-        </div>
-
-        <h3>28.4 Baseline：不能更简单了</h3>
-
-        <p>我们先用两个最简单的模型建立 baseline：</p>
-
-        <ul>
-            <li><strong>Naive 模型</strong>：预测未来值等于最后一个观测值。即 <code>y_hat_{t+1} = y_t</code></li>
-            <li><strong>Seasonal Naive 模型</strong>：预测未来值等于上一个同季节周期的值。对于日数据，周期为 7 天：<code>y_hat_{t+1} = y_{t+1-7}</code></li>
-        </ul>
-
-        <pre><code># Baseline 实现
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-import numpy as np
-
-def naive_forecast(train, test):
-    """Naive: 用最后一个训练值填充"""
-    last_val = train.iloc[-1]
-    preds = np.full(len(test), last_val)
-    return preds
-
-def seasonal_naive_forecast(train, test, season=7):
-    """Seasonal Naive: 用上一周期的值"""
-    if len(train) &lt; season:
-        raise ValueError("训练集太短")
-    preds = train.iloc[-season:].values
-    # 如果有多个预测周期，重复填充
-    repeats = int(np.ceil(len(test) / season))
-    preds = np.tile(preds, repeats)[:len(test)]
-    return preds
-
-# 评估
-test_actuals = y_test
-naive_preds = naive_forecast(y_train, y_test)
-snaive_preds = seasonal_naive_forecast(y_train, y_test)
-
-print(f"Naive MAE: {mean_absolute_error(test_actuals, naive_preds):.2f}")
-print(f"Seasonal Naive MAE: {mean_absolute_error(test_actuals, snaive_preds):.2f}")</code></pre>
-
-        <p>Seasonal Naive 通常比 Naive 好得多——如果不行，说明数据中的季节性很弱，后续建模可能需要调整策略。</p>
-
-        <h3>28.5 统计模型：ETS 和 SARIMA</h3>
-
-        <p>有了 baseline，我们来上 ETS（Error-Trend-Seasonality）和 SARIMA。用 statsmodels 可以很方便地实现：</p>
-
-        <pre><code># ETS 模型
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
-
-ets_model = ExponentialSmoothing(
-    y_train, seasonal_periods=7, trend="add", seasonal="add"
-)
-ets_fit = ets_model.fit()
-ets_preds = ets_fit.forecast(len(y_test))
-
-# SARIMA 模型
+<section id="stats" aria-labelledby="stats-head">
+<h2 id="stats-head">05 · 统计模型：ETS 与 SARIMA</h2>
+<p>有基线之后可以上统计模型。ETS 把误差、趋势、季节三个分量的组合参数化（见 <a href="05.html">第 5 章</a>）；SARIMA 在 ARIMA 基础上加一层季节阶数（见 <a href="12.html">第 12 章</a>）。用 statsmodels 可以直接拟合：</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-sarima_model = SARIMAX(
-    y_train,
-    order=(2, 1, 2),         # (p, d, q)
-    seasonal_order=(1, 1, 1, 7)  # (P, D, Q, s)
-)
-sarima_fit = sarima_model.fit(disp=False)
-sarima_preds = sarima_fit.forecast(len(y_test))</code></pre>
+ets = ExponentialSmoothing(y_train, seasonal_periods=7,
+                           trend="add", seasonal="add").fit()
+ets_pred = ets.forecast(len(y_test))
 
-        <div class="highlight">
-            <strong>经验之谈：</strong>对于日频次的电商数据，SARIMA 的 (p, d, q) 通常在 (1-3, 1, 1-3) 范围内，季节性部分 (P, D, Q, s) 中 s=7（周周期），(P, D, Q) 取 (1, 1, 1) 是很好的起点。不需要盲目搜索所有组合——先用 auto-arima 缩小范围，然后再手动微调。
-        </div>
+sarima = SARIMAX(y_train, order=(1, 1, 1),
+                 seasonal_order=(1, 1, 1, 7),
+                 enforce_stationarity=True,
+                 enforce_invertibility=True).fit(disp=False)
+sarima_pred = sarima.forecast(len(y_test))</code></pre>
+<p>阶数搜索不要盲目遍历。一个合理做法是：先用 AIC/BIC（见 <a href="04.html">第 4 章</a>）在同一数据上筛出几个候选，再用时序验证（见 <a href="22.html">第 22 章</a>）比较泛化表现——<strong>AIC 选出的模型不等同于预测最优的模型</strong>。同时检查残差是否还有自相关（Ljung-Box），否则说明季节性或趋势没建完。</p>
+</section>
 
-        <h3>28.6 机器学习模型：XGBoost 特征工程</h3>
-
-        <p>统计模型只用到了目标变量自身的历史。要想利用更多信息（促销、天气、节假日、历史同期），需要机器学习的特征工程方法。回顾第 19 章的特征工程技巧：</p>
-
-        <pre><code># 构造特征
-def create_features(df, target="sales", max_lag=14, window_sizes=[7, 14, 30]):
+<section id="ml" aria-labelledby="ml-head">
+<h2 id="ml-head">06 · 机器学习：特征工程 + 梯度提升</h2>
+<p>统计模型只用目标自身的历史。要引入促销、节假日、天气等外部信息，通常要把问题转成监督学习：用过去的信息构造特征，预测未来的目标值。关键是<strong>不泄漏未来</strong>（见 <a href="19.html">第 19 章</a>）：</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>def make_features(df, target="sales", lags=(1, 7, 14), windows=(7, 14, 28)):
     X = df.copy()
-    # 时间特征
-    X["day_of_week"] = X.index.dayofweek
-    X["day_of_month"] = X.index.day
+    X["dow"] = X.index.dayofweek
     X["month"] = X.index.month
-    X["week_of_year"] = X.index.isocalendar().week.astype(int)
-
-    # 滞后特征
-    for lag in range(1, max_lag + 1):
-        X[f"lag_{lag}"] = X[target].shift(lag)
-
-    # 滚动窗口统计
-    for w in window_sizes:
-        X[f"roll_mean_{w}"] = X[target].rolling(w).mean().shift(1)
-        X[f"roll_std_{w}"] = X[target].rolling(w).std().shift(1)
-        X[f"roll_min_{w}"] = X[target].rolling(w).min().shift(1)
-        X[f"roll_max_{w}"] = X[target].rolling(w).max().shift(1)
-
+    for lag in lags:
+        X[f"lag_{lag}"] = X[target].shift(lag)          # 只用 t-lag 及更早
+    for w in windows:
+        X[f"roll_mean_{w}"] = X[target].shift(1).rolling(w).mean()   # shift(1) 防止把 t 包进去
     return X.dropna()
 
-# 训练 XGBoost
-import xgboost as xgb
-
-X_train = create_features(y_train.to_frame("sales"))
-y_train_xgb = X_train["sales"]
-X_train = X_train.drop(columns=["sales"])
-
-model_xgb = xgb.XGBRegressor(
-    n_estimators=300, max_depth=5, learning_rate=0.05,
-    subsample=0.8, colsample_bytree=0.8
-)
-model_xgb.fit(X_train, y_train_xgb)</code></pre>
-
-        <p>XGBoost 的优点在于：它能自动捕捉特征间的交互，对异常值相对鲁棒，训练速度快。在 2026 年的各类时序竞赛中，XGBoost 配合良好的特征工程仍然是最强的基线之一。</p>
-
-        <h3>28.7 深度学习模型：LSTM 和 PatchTST</h3>
-
-        <p>当数据量足够大（几千个时间点以上）且特征工程已经做到极致时，深度学习模型可以进一步压低误差。</p>
-
-        <p>LSTM 是时序深度学习的经典选择。而 PatchTST（第 25 章介绍过）是 Transformer 架构中专门为时序设计的模型，它在 2024-2025 年的多个 benchmark 上刷新了 SOTA。我们这里用 Darts 库来快速实验——它封装了 LSTM、PatchTST 等多种模型，统一接口，非常适合快速对比。</p>
-
-        <pre><code># 用 Darts 训练 LSTM 和 PatchTST
-from darts.models import RNNModel, PatchTSTModel
+from sklearn.ensemble import GradientBoostingRegressor
+model = GradientBoostingRegressor(random_state=0)
+# 特征与目标需按时间切分；树模型不能外推，趋势项需单独处理（见第 20 章）</code></pre>
+<p>梯度提升的优点是能自动利用特征交互、对异常值相对鲁棒、训练快。但有两个时序特有的陷阱：<strong>（1）</strong>树模型无法外推趋势——如果目标带长期增长，需先去趋势或用差分；<strong>（2）</strong>滚动特征必须用 <code>shift</code> 严格对齐，任何把 <code>t</code> 当特征的做法都是泄露。</p>
+</section>
+<section id="dl" aria-labelledby="dl-head">
+<h2 id="dl-head">07 · 深度模型：LSTM 与 PatchTST</h2>
+<p>当数据量足够（数千个时间点以上）且特征工程已到位，可以尝试深度模型：<a href="23.html">LSTM</a> 适合序列建模，<a href="25.html">PatchTST</a> 把序列切成 patch 后用 Transformer 编码。用统一接口的库（如 Darts）便于快速对比：</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>from darts.models import RNNModel, PatchTSTModel
 from darts import TimeSeries
 
-train_series = TimeSeries.from_series(y_train)
-test_series = TimeSeries.from_series(y_test)
+train = TimeSeries.from_series(y_train)
+lstm = RNNModel(model="LSTM", hidden_dim=64, n_rnn_layers=2,
+                input_chunk_length=30, training_length=60, n_epochs=50, random_state=0)
+lstm.fit(train)
+lstm_pred = lstm.predict(len(y_test))
 
-# LSTM
-lstm = RNNModel(
-    model="LSTM",
-    hidden_dim=64, n_rnn_layers=2,
-    training_length=30, n_epochs=50
-)
-lstm.fit(train_series)
-lstm_preds = lstm.predict(len(y_test)).pd_series()
+patch = PatchTSTModel(input_chunk_length=60, output_chunk_length=14,
+                      patch_length=8, n_epochs=50, random_state=0)
+patch.fit(train)
+patch_pred = patch.predict(len(y_test))</code></pre>
+<p>两点必须记住：<strong>一是可比性</strong>——深度模型必须用与统计模型<strong>完全相同</strong>的时序验证划分，否则任何“更好”都不可信；<strong>二是随机性</strong>——训练需要固定随机种子并重复运行看方差，单次结果不具代表性。</p>
+</section>
 
-# PatchTST
-ptst = PatchTSTModel(
-    input_chunk_length=60, output_chunk_length=14,
-    patch_length=8, num_epochs=50
-)
-ptst.fit(train_series)
-ptst_preds = ptst.predict(len(y_test)).pd_series()</code></pre>
-
-        <h3>28.8 模型集成：Stacking</h3>
-
-        <p>不同的模型有各自的优势和盲区。统计模型擅长捕捉周期性，树模型擅长处理外部特征，深度学习擅长学习复杂模式。把它们组合起来往往能得到更好的结果。</p>
-
-        <p>最简单的集成方式是等权平均。更高级的做法是 Stacking：用每个模型的预测值作为特征，训练一个 meta-model（通常用线性回归或简单的 Ridge）来学习最优的加权方式。</p>
-
-        <pre><code># Stacking ensemble — 用线性回归学习最优权重
-from sklearn.linear_model import Ridge
-
-# 训练集上各个模型的预测（用时间序列交叉验证获取）
-stacking_X = np.column_stack([
-    ets_preds, sarima_preds, xgb_preds,
-    lstm_preds, ptst_preds
-])
-
-# 用 Ridge 学习权重
-meta_model = Ridge(alpha=1.0)
-meta_model.fit(stacking_X, test_actuals)
-
-# 最终预测 = 加权组合
-ensemble_preds = meta_model.predict(stacking_X)
-print("Ensemble weights:", meta_model.coef_.round(3))</code></pre>
-
-        <h3>28.9 最终模型对比</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>模型</th>
-                    <th>MAE</th>
-                    <th>RMSE</th>
-                    <th>训练时间</th>
-                    <th>推理速度</th>
-                    <th>可解释性</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Naive</td>
-                    <td>2845</td>
-                    <td>3720</td>
-                    <td>0 秒</td>
-                    <td>极快</td>
-                    <td>极高</td>
-                </tr>
-                <tr>
-                    <td>Seasonal Naive</td>
-                    <td>1850</td>
-                    <td>2410</td>
-                    <td>0 秒</td>
-                    <td>极快</td>
-                    <td>极高</td>
-                </tr>
-                <tr>
-                    <td>ETS</td>
-                    <td>1520</td>
-                    <td>2010</td>
-                    <td>2 秒</td>
-                    <td>快</td>
-                    <td>高</td>
-                </tr>
-                <tr>
-                    <td>SARIMA</td>
-                    <td>1420</td>
-                    <td>1890</td>
-                    <td>15 秒</td>
-                    <td>快</td>
-                    <td>高</td>
-                </tr>
-                <tr>
-                    <td>XGBoost</td>
-                    <td>1120</td>
-                    <td>1520</td>
-                    <td>45 秒</td>
-                    <td>快</td>
-                    <td>中</td>
-                </tr>
-                <tr>
-                    <td>LSTM</td>
-                    <td>1080</td>
-                    <td>1450</td>
-                    <td>8 分钟</td>
-                    <td>中</td>
-                    <td>低</td>
-                </tr>
-                <tr>
-                    <td>PatchTST</td>
-                    <td>1020</td>
-                    <td>1380</td>
-                    <td>15 分钟</td>
-                    <td>中</td>
-                    <td>低</td>
-                </tr>
-                <tr>
-                    <td>Stacking Ensemble</td>
-                    <td>970</td>
-                    <td>1290</td>
-                    <td>含子模型训练</td>
-                    <td>中</td>
-                    <td>低</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <p>从表中可以看出几个规律：</p>
-        <ul>
-            <li><strong>简单的 baseline 已经能解决很多问题</strong>——Seasonal Naive 的 MAE 1850，和 SARIMA 的 1420 差距并没有想象中那么大。</li>
-            <li><strong>模型越复杂，边际收益递减</strong>——从 XGBoost 到 PatchTST 再到 Ensemble，每一步的提升都在缩小。</li>
-            <li><strong>训练时间和推理速度差异巨大</strong>——在生产中，如果你的系统需要每秒处理几百个序列的预测，SARIMA 必须为每个序列重新拟合，这时深度学习或 XGBoost 的批量推理反而更有优势。</li>
-        </ul>
-
-        <h3>28.10 部署模拟</h3>
-
-        <p>选择 Ensemble 模型作为最终方案后，按照第 27 章的方法：</p>
-        <ol>
-            <li>将训练好的模型序列化（pickle / ONNX）</li>
-            <li>用 FastAPI 封装为 <code>/predict</code> 接口</li>
-            <li>用 MLflow 记录当前模型版本</li>
-            <li>设置每日残差监控和 drift 告警</li>
-            <li>配置每周自动重训练 pipeline</li>
-        </ol>
-
-        <div class="tip">
-            <strong>部署贴士：</strong>Stacking ensemble 在部署时需要注意——如果某个子模型因任何原因不可用（比如 LSTM 模型文件损坏），ensemble 可能产生异常输出。一个稳健的做法是在 meta-model 之后再加一层 fallback 逻辑：如果 ensemble 输出值超出合理范围（比如销售额为负或超过历史最大值的 5 倍），自动降级到 XGBoost 或 SARIMA 的单模型预测。
-        </div>
-
-        <h3>28.11 时序预测十大常见错误</h3>
-
-        <p>作为全课程的收尾，这里总结了我见过（也犯过）的十大常见错误：</p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>错误</th>
-                    <th>后果</th>
-                    <th>正确做法</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>1</td>
-                    <td>没有做 train/test 时间分割，用了随机分割</td>
-                    <td>数据泄露，评估结果虚高</td>
-                    <td>始终按时间顺序划分</td>
-                </tr>
-                <tr>
-                    <td>2</td>
-                    <td>用未来数据构造特征（特征泄漏）</td>
-                    <td>线上效果远差于离线</td>
-                    <td>只使用 t-1 及之前的信息</td>
-                </tr>
-                <tr>
-                    <td>3</td>
-                    <td>忽视数据漂移的监控</td>
-                    <td>模型静默降级未被发现</td>
-                    <td>部署残差监控和 drift 告警</td>
-                </tr>
-                <tr>
-                    <td>4</td>
-                    <td>使用默认的时序交叉验证参数</td>
-                    <td>低估预测误差方差</td>
-                    <td>使用扩大窗口（expanding window）</td>
-                </tr>
-                <tr>
-                    <td>5</td>
-                    <td>目标变量不做稳定性检查就建模</td>
-                    <td>伪回归，预测不可靠</td>
-                    <td>先做单位根检验，必要时差分</td>
-                </tr>
-                <tr>
-                    <td>6</td>
-                    <td>忽略节假日和外部事件</td>
-                    <td>春节期间预测误差巨大</td>
-                    <td>加入节假日特征和事件标记</td>
-                </tr>
-                <tr>
-                    <td>7</td>
-                    <td>只用 MAE/RMSE，不看残差自相关</td>
-                    <td>漏掉模型可改进空间</td>
-                    <td>评估残差的 Ljung-Box 检验</td>
-                </tr>
-                <tr>
-                    <td>8</td>
-                    <td>对同一测试集反复调参</td>
-                    <td>过拟合到测试集</td>
-                    <td>保留 holdout 集，只在最后使用</td>
-                </tr>
-                <tr>
-                    <td>9</td>
-                    <td>预测长度的选择随意</td>
-                    <td>长周期预测不可靠</td>
-                    <td>预测 horizon 应由业务需求决定</td>
-                </tr>
-                <tr>
-                    <td>10</td>
-                    <td>"部署即结束"心态</td>
-                    <td>模型 6 个月后失效</td>
-                    <td>模型需要持续维护和迭代</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>28.12 学习路线图：下一步往哪里走</h3>
-
-        <p>如果你已经跟着这门课程学到了这里，恭喜——你已经有了一套完整的时间序列知识体系。但学习不应该止步于此。以下是进一步深造的建议路线图：</p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>方向</th>
-                    <th>推荐资源</th>
-                    <th>投入时间</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>因果推断与时序</td>
-                    <td>Hyndman &amp; Athanasopoulos <em>Forecasting: Principles and Practice</em>（免费电子书）</td>
-                    <td>40 小时</td>
-                </tr>
-                <tr>
-                    <td>深度时序模型</td>
-                    <td>Lim &amp; Zohren <em>Time Series Forecasting with Deep Learning: A Survey</em></td>
-                    <td>60 小时</td>
-                </tr>
-                <tr>
-                    <td>时序竞赛实战</td>
-                    <td>Kaggle M5 Forecasting、Store-Sales Forecasting 竞赛</td>
-                    <td>80 小时</td>
-                </tr>
-                <tr>
-                    <td>高频金融时序</td>
-                    <td>Campbell, Lo &amp; MacKinlay <em>The Econometrics of Financial Markets</em></td>
-                    <td>100 小时</td>
-                </tr>
-                <tr>
-                    <td>贝叶斯时序方法</td>
-                    <td>Pyro / NumPyro 的时序模块文档 + 相关论文</td>
-                    <td>50 小时</td>
-                </tr>
-                <tr>
-                    <td>前沿研究</td>
-                    <td>NeurIPS / ICML / AISTATS 的时序方向论文</td>
-                    <td>持续跟进</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>写在最后</h3>
-
-        <p>到这里，28 章的全部内容就结束了。我想和你分享一个想法。</p>
-
-        <p>时间序列分析是一门有点特别的学问——它处于统计学、机器学习和领域知识的交叉点上。它不像纯粹的计算机视觉或 NLP 那样"只要堆数据和算力就能解决问题"。做好时序预测，既需要理解统计理论的严谨，也需要对业务场景的深刻洞察。</p>
-
-        <p>你在第 1 章学到的"时间序列是有序的、自相关的"这一句话，贯穿了整门课程。这种自相关性既是我们做预测的基础，也是我们在建模过程中始终要提防的陷阱。无论是 ARIMA 的参数选择、深度学习的序列建模，还是基础模型的 tokenization，本质上都是在处理"如何利用历史信息"这个核心问题。</p>
-
-        <p>如果你在工作中遇到过这些问题——库存预测、用户增长预估、流量预测、风险预警——希望这门课给你提供了足够的方法论。如果还没有机会应用，不要急：找一个你感兴趣的公开数据集，从第 28 章的项目框架出发，跑一遍完整的 pipeline。</p>
-
-        <div class="highlight">
-            <strong>最后送给你的三句话：</strong><br>
-            <strong>"All models are wrong, but some are useful."</strong> —— George Box。不要追求完美的模型，要追求有用的模型。<br>
-            <strong>"The best time to start is now."</strong> 打开你的 Jupyter Notebook，加载一个时序数据，从 EDA 开始。<br>
-            <strong>"Keep learning, keep predicting."</strong> 时序预测在变，但底层的方法论和思维框架不会过时。
-        </div>
-
-        <p>感谢你一路读到这里。祝你在时间序列的世界里，找到有价值的洞察，做出准确的预测。我们江湖再见 🚀</p>
-
-        <div class="footer-nav">
-            <a href="27.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="javascript:void(0)" style="opacity:0.5;pointer-events:none;">下一章 →</a>
-        </div>
-    </div>
+<section id="ensemble" aria-labelledby="ensemble-head">
+<h2 id="ensemble-head">08 · 集成：为什么组合常常有效</h2>
+<p>不同模型的误差结构不同：统计模型强在周期与平滑，树模型强在外部特征，深度模型强在复杂模式。把它们组合，往往能降低方差。最简的是等权平均；更系统的是 <strong>Stacking</strong>——用各基模型的预测作为特征，训练一个元模型学习组合权重。</p>
+<figure id="28-stack"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="st-title st-desc"><title id="st-title">Stacking 集成的结构</title><desc id="st-desc">四个基模型（ETS、SARIMA、梯度提升、深度模型）各自产生预测，堆叠成一个预测矩阵；元模型在该矩阵上学习权重，输出最终预测。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12px;fill:#41706e}</style><rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="36" class="h">基模型 → 预测矩阵 → 元模型 → 最终预测</text>
+<g><rect x="30" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="105" y="90" class="n" text-anchor="middle">ETS</text><rect x="200" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="275" y="90" class="n" text-anchor="middle">SARIMA</text><rect x="370" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="445" y="90" class="n" text-anchor="middle">梯度提升</text><rect x="540" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="615" y="90" class="n" text-anchor="middle">深度模型</text></g>
+<g stroke="#9fb0ad" stroke-width="2" fill="none"><path d="M105 110 v30 h150" marker-end="url(#st-a)"/><path d="M275 110 v30" marker-end="url(#st-a)"/><path d="M445 110 v30" marker-end="url(#st-a)"/><path d="M615 110 v30 h-180" marker-end="url(#st-a)"/></g>
+<defs><marker id="st-a" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#9fb0ad"/></marker></defs>
+<rect x="80" y="150" width="440" height="64" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="300" y="178" class="n" text-anchor="middle">预测矩阵</text><text x="300" y="198" class="k" text-anchor="middle">行 = 时序验证样本，列 = 基模型</text>
+<path d="M520 182 h30" stroke="#9fb0ad" stroke-width="2" marker-end="url(#st-a)"/>
+<rect x="560" y="150" width="180" height="64" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="650" y="178" class="n" text-anchor="middle">元模型 Ridge</text><text x="650" y="198" class="k" text-anchor="middle">学习组合权重</text>
+<path d="M740 182 h30" stroke="#9fb0ad" stroke-width="2" marker-end="url(#st-a)"/>
+<rect x="780" y="150" width="150" height="64" rx="8" fill="#fff4e3" stroke="#916c22"/><text x="855" y="186" class="n" text-anchor="middle">最终预测</text>
+<text x="30" y="262" class="n">权重必须在与最终评估不同的数据上学习，否则集成会过拟合验证集。</text><text x="30" y="284" class="k">若某基模型缺失，需有降级规则，否则集成输出可能异常（见第 27 章）。</text></svg>
+<figcaption>Stacking 把各基模型的预测当成新特征，由元模型学习权重。<strong>因为元模型也需数据拟合，它的训练数据必须与最终评估集分离</strong>，否则会高估集成效果。图为结构示意。</figcaption></figure>
+</section>
+<section id="compare" aria-labelledby="compare-head">
+<h2 id="compare-head">09 · 评估对比：只比同一把尺子</h2>
+<p>不同模型族各有取舍。下表描述的是<strong>典型取舍</strong>，不是具体分数；任何优劣都必须在你的数据上用<strong>同一套</strong>时序验证测量：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">模型族</th><th scope="col">典型优势</th><th scope="col">主要代价</th><th scope="col">需注意</th></tr></thead><tbody>
+<tr><td>naive / seasonal-naive</td><td>零训练、可解释、难被大幅超越</td><td>无法利用外部特征</td><td>应始终作为参照底线</td></tr>
+<tr><td>ETS / SARIMA</td><td>可解释、自带区间、适合平稳/季节序列</td><td>需定阶、难融合多外部变量</td><td>残差诊断与差分次数</td></tr>
+<tr><td>梯度提升</td><td>能利用大量外部特征与交互</td><td>无法外推趋势，易受泄漏影响</td><td>滞后特征严格对齐</td></tr>
+<tr><td>深度模型</td><td>可学习复杂模式、可多变量</td><td>需大量数据、训练与调参成本高</td><td>固定种子、重复运行看方差</td></tr>
+<tr><td>集成 / Stacking</td><td>带不同误差结构、降低方差</td><td>维护成本、元模型可能过拟合</td><td>元模型训练集需与评估集分离</td></tr>
+</tbody></table>
 </div>
+<p>一个常被忽略的规律：<strong>从 baseline 到统计模型往往提升最大，之后再复杂化边际收益递减</strong>。选择模型的依据应是业务需求（延迟、可解释、是否需要区间），而不是“越新越好”。</p>
+</section>
+
+<section id="deploy" aria-labelledby="deploy-head">
+<h2 id="deploy-head">10 · 部署模拟</h2>
+<p>选定方案后，按 <a href="27.html">第 27 章</a>的流程上线：</p>
+<ol>
+<li>序列化模型（pickle / ONNX）并写入版本与训练数据窗口；</li>
+<li>用 FastAPI 封装 <code>/predict</code> 接口，校验历史长度；</li>
+<li>在 Model Registry 记录当前版本与回滚点；</li>
+<li>部署残差监控与漂移告警；</li>
+<li>配置定期 + 漂移触发的重训练流水线。</li>
+</ol>
+<div class="callout"><strong>集成的降级：</strong>若某个基模型不可用（文件损坏、超时），集成可能产生异常输出。稳妥做法是加一层范围校验：输出超出合理范围（如销量为负）时自动回退到单个稳定模型（如 seasonal-naive 或 SARIMA）。</div>
+</section>
+
+<section id="errors" aria-labelledby="errors-head">
+<h2 id="errors-head">11 · 时序预测的常见错误</h2>
+<p>下面这些是全课程反复强调、也最常见的问题，可以当作自检清单：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">#</th><th scope="col">错误</th><th scope="col">后果</th><th scope="col">正确做法</th></tr></thead><tbody>
+<tr><td>1</td><td>用随机划分代替时间划分</td><td>数据泄露、评估虚高</td><td>按时间顺序切分（<a href="22.html">第 22 章</a>）</td></tr>
+<tr><td>2</td><td>用未来信息构造特征</td><td>离线好、线上差</td><td>只用 t−1 及更早的信息</td></tr>
+<tr><td>3</td><td>不做平稳性/单位根检查</td><td>伪回归、预测不可靠</td><td>先检验、必要时差分（<a href="03.html">第 3 章</a>）</td></tr>
+<tr><td>4</td><td>只看 MAE/RMSE，不看残差</td><td>漏掉模型可改进空间</td><td>看残差自相关与诊断图</td></tr>
+<tr><td>5</td><td>不在同一验证上比较模型</td><td>结论不可信</td><td>统一时序验证划分</td></tr>
+<tr><td>6</td><td>对同一测试集反复调参</td><td>过拟合测试集</td><td>保留 holdout，只在最后用</td></tr>
+<tr><td>7</td><td>忽略节假日与外部事件</td><td>节日期间误差巨大</td><td>加入日历与事件特征</td></tr>
+<tr><td>8</td><td>预测长度随意设定</td><td>长周期预测不可靠</td><td>horizon 由业务需求决定</td></tr>
+<tr><td>9</td><td>认为“部署即结束”</td><td>模型静默降级</td><td>监控、告警与重训练（<a href="27.html">第 27 章</a>）</td></tr>
+<tr><td>10</td><td>把回测分数当真实业务收益</td><td>决策误判</td><td>区分离线指标与上线效果</td></tr>
+</tbody></table>
+</div>
+</section>
+<section id="roadmap" aria-labelledby="roadmap-head">
+<h2 id="roadmap-head">12 · 学习路径：下一步往哪走</h2>
+<p>学完课程，你已经有一套完整的时序方法论。继续深造可按兴趣选方向（资源均为公开且可自行核对）：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">方向</th><th scope="col">推荐资源</th></tr></thead><tbody>
+<tr><td>统计预测体系</td><td>Hyndman &amp; Athanasopoulos，<em>Forecasting: Principles and Practice</em>（在线第 3 版）</td></tr>
+<tr><td>工程实现</td><td>statsmodels 与 Darts 官方文档的时序模块</td></tr>
+<tr><td>竞赛实战</td><td>Kaggle M5 Forecasting、Store Sales 等公开竞赛</td></tr>
+<tr><td>高频金融</td><td>Campbell, Lo &amp; MacKinlay，<em>The Econometrics of Financial Markets</em></td></tr>
+<tr><td>概率与贝叶斯</td><td>Pyro / NumPyro 的时序状态空间模块文档</td></tr>
+<tr><td>前沿研究</td><td>NeurIPS / ICML / AISTATS 的时序方向论文</td></tr>
+</tbody></table>
+</div>
+</section>
+
+<section id="wrap" aria-labelledby="wrap-head">
+<h2 id="wrap-head">13 · 结语：三个可带走的心理模型</h2>
+<p>时间序列分析处在统计学、机器学习与领域知识的交叉点。它不像纯视觉或 NLP 那样“堆数据和算力”就能解决：做好预测，既需要统计理论的严谨，也需要对业务场景的洞察。把整门课压缩成三句话：</p>
+<div class="thought"><strong>① 先立基线，再复杂化。</strong>seasonal-naive 与一个调好的统计模型，是任何新方法都必须先超越的底线。<br><strong>② 用同一把尺子。</strong>时序验证、残差诊断与同一评估口径，比任何单一分数都重要。<br><strong>③ 部署即开始。</strong>线上监控与重训练，和模型本身一样是交付物的一部分。</div>
+<p>George Box 的话值得反复回味：<strong>“All models are wrong, but some are useful.”</strong> 目标不是找到“正确”的模型，而是找到在明确假设与限制下<em>有用</em>的模型。若手边还没有可实践的数据，不妨找一个公开数据集，从第 28 章的框架出发跑一遍完整流水线。</p>
+</section>
+
+<section id="references">
+<h2>进一步阅读与技术核对</h2>
+<p>引用指向官方文档与公开教材；版本与接口以对应文档为准。</p>
+<ol class="refs">
+<li><a href="https://otexts.com/fpp3/" target="_blank" rel="noopener noreferrer">Hyndman &amp; Athanasopoulos：Forecasting: Principles and Practice（第 3 版，在线）</a></li>
+<li><a href="https://www.statsmodels.org/stable/tsa.html" target="_blank" rel="noopener noreferrer">statsmodels 文档：时间序列分析模块</a></li>
+<li><a href="https://unit8co.github.io/darts/" target="_blank" rel="noopener noreferrer">Darts 文档：统一接口的时序预测模型库</a></li>
+<li><a href="https://www.kaggle.com/competitions/m5-forecasting-accuracy" target="_blank" rel="noopener noreferrer">Kaggle M5 Forecasting：零售分层时序预测的公开案例</a></li>
+</ol>
+</section>
+
+<nav class="bottom-nav" aria-label="章节导航"><a href="27.html">← 上一章</a><a href="../index.html#catalog">目录</a></nav>
+</article>
+</main>
 </div>
 </body>
 </html>

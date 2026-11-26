@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" role="img" aria-labelledby="pl-title pl-desc">
+<title id="pl-title">端到端时序预测流水线的八个阶段</title>
+<desc id="pl-desc">上行四个阶段：数据清洗、探索性分析、baseline、统计模型；下行四个阶段：梯度提升、深度模型、集成、部署模拟。上行末端折返到下行起点，顺序完成整条流水线。</desc>
+<style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12px;fill:#41706e}</style>
+<rect x="1" y="1" width="958" height="328" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="36" class="h">从原始数据到上线监控：八个阶段</text>
+<g><rect x="30" y="62" width="200" height="58" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="130" y="86" class="n" text-anchor="middle">① 数据清洗</text><text x="130" y="106" class="k" text-anchor="middle">缺失 · 促销 · 节假日</text>
+<rect x="260" y="62" width="200" height="58" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="360" y="86" class="n" text-anchor="middle">② EDA</text><text x="360" y="106" class="k" text-anchor="middle">趋势 · 季节 · 自相关</text>
+<rect x="490" y="62" width="200" height="58" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="590" y="86" class="n" text-anchor="middle">③ Baseline</text><text x="590" y="106" class="k" text-anchor="middle">naive · seasonal-naive</text>
+<rect x="720" y="62" width="200" height="58" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="820" y="86" class="n" text-anchor="middle">④ 统计模型</text><text x="820" y="106" class="k" text-anchor="middle">ETS · SARIMA</text></g>
+<g><rect x="30" y="196" width="200" height="58" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="130" y="220" class="n" text-anchor="middle">⑤ 梯度提升</text><text x="130" y="240" class="k" text-anchor="middle">特征工程 + 树模型</text>
+<rect x="260" y="196" width="200" height="58" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="360" y="220" class="n" text-anchor="middle">⑥ 深度模型</text><text x="360" y="240" class="k" text-anchor="middle">LSTM · PatchTST</text>
+<rect x="490" y="196" width="200" height="58" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="590" y="220" class="n" text-anchor="middle">⑦ 集成</text><text x="590" y="240" class="k" text-anchor="middle">平均 · Stacking</text>
+<rect x="720" y="196" width="200" height="58" rx="8" fill="#fff4e3" stroke="#916c22"/><text x="820" y="220" class="n" text-anchor="middle">⑧ 部署模拟</text><text x="820" y="240" class="k" text-anchor="middle">API · 监控 · 回滚</text></g>
+<g stroke="#9fb0ad" stroke-width="2" fill="none"><path d="M230 91 h24" marker-end="url(#pl-a)"/><path d="M460 91 h24" marker-end="url(#pl-a)"/><path d="M690 91 h24" marker-end="url(#pl-a)"/><path d="M230 225 h24" marker-end="url(#pl-a)"/><path d="M460 225 h24" marker-end="url(#pl-a)"/><path d="M690 225 h24" marker-end="url(#pl-a)"/></g>
+<defs><marker id="pl-a" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#9fb0ad"/></marker></defs>
+<path d="M820 120 V160 H130 V196" fill="none" stroke="#9fb0ad" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#pl-a)"/>
+<text x="470" y="300" class="n">每层都有不确定性：模型再强，也治不好脏数据与漏掉的外部事件。</text>
+</svg>

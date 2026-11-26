@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="st-title st-desc">
+<title id="st-title">Stacking 集成的结构</title>
+<desc id="st-desc">四个基模型（ETS、SARIMA、梯度提升、深度模型）各自产生预测，堆叠成一个预测矩阵；元模型在该矩阵上学习权重，输出最终预测。</desc>
+<style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12px;fill:#41706e}</style>
+<rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="36" class="h">基模型 → 预测矩阵 → 元模型 → 最终预测</text>
+<g><rect x="30" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="105" y="90" class="n" text-anchor="middle">ETS</text>
+<rect x="200" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="275" y="90" class="n" text-anchor="middle">SARIMA</text>
+<rect x="370" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="445" y="90" class="n" text-anchor="middle">梯度提升</text>
+<rect x="540" y="60" width="150" height="50" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="615" y="90" class="n" text-anchor="middle">深度模型</text></g>
+<g stroke="#9fb0ad" stroke-width="2" fill="none"><path d="M105 110 v30 h150" marker-end="url(#st-a)"/><path d="M275 110 v30" marker-end="url(#st-a)"/><path d="M445 110 v30" marker-end="url(#st-a)"/><path d="M615 110 v30 h-180" marker-end="url(#st-a)"/></g>
+<defs><marker id="st-a" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#9fb0ad"/></marker></defs>
+<rect x="80" y="150" width="440" height="64" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="300" y="178" class="n" text-anchor="middle">预测矩阵</text><text x="300" y="198" class="k" text-anchor="middle">行 = 时序验证样本，列 = 基模型</text>
+<path d="M520 182 h30" stroke="#9fb0ad" stroke-width="2" marker-end="url(#st-a)"/>
+<rect x="560" y="150" width="180" height="64" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="650" y="178" class="n" text-anchor="middle">元模型 Ridge</text><text x="650" y="198" class="k" text-anchor="middle">学习组合权重</text>
+<path d="M740 182 h30" stroke="#9fb0ad" stroke-width="2" marker-end="url(#st-a)"/>
+<rect x="780" y="150" width="150" height="64" rx="8" fill="#fff4e3" stroke="#916c22"/><text x="855" y="186" class="n" text-anchor="middle">最终预测</text>
+<text x="30" y="262" class="n">权重必须在与最终评估不同的数据上学习，否则集成会过拟合验证集。</text>
+<text x="30" y="284" class="k">若某基模型缺失，需有降级规则，否则集成输出可能异常（见第 27 章）。</text>
+</svg>
