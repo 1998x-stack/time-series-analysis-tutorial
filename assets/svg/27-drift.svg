@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" role="img" aria-labelledby="dr-title dr-desc">
+<title id="dr-title">残差监控中的均值偏移与方差增大</title>
+<desc id="dr-desc">上行：残差在漂移起点前围绕 0 波动，之后整体上移到正参考带以外，提示系统性偏差；下行：残差在漂移起点前波动很小，之后方差明显变大，提示输入分布不稳。</desc>
+<style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12.5px;fill:#41706e}</style>
+<rect x="1" y="1" width="958" height="338" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="34" class="h">残差监控能提前发现两类漂移</text>
+<text x="40" y="72" class="n">① 均值偏移：预测系统性偏一侧</text>
+<line x1="40" y1="118" x2="700" y2="118" stroke="#c9d3d1" stroke-width="1.6"/><line x1="40" y1="94" x2="700" y2="94" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/><line x1="40" y1="142" x2="700" y2="142" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/>
+<polyline points="40,124 80,112 120,126 160,110 200,122 240,116 280,128 320,112 360,124 400,118" fill="none" stroke="#147f80" stroke-width="2.4"/><polyline points="440,90 480,86 520,80 560,84 600,76 640,88 680,82" fill="none" stroke="#d06d4d" stroke-width="2.4"/>
+<text x="40" y="205" class="n">② 方差增大：残差波动变宽</text>
+<line x1="40" y1="250" x2="700" y2="250" stroke="#c9d3d1" stroke-width="1.6"/><line x1="40" y1="222" x2="700" y2="222" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/><line x1="40" y1="278" x2="700" y2="278" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/>
+<polyline points="40,254 80,246 120,256 160,248 200,258 240,244 280,254 320,250 360,246 400,252" fill="none" stroke="#147f80" stroke-width="2.4"/><polyline points="440,222 480,276 520,214 560,282 600,220 640,274 680,216" fill="none" stroke="#d06d4d" stroke-width="2.4"/>
+<line x1="430" y1="58" x2="430" y2="300" stroke="#9fb0ad" stroke-width="1.6" stroke-dasharray="4 4"/><text x="436" y="54" class="k">漂移起点</text>
+<rect x="700" y="86" width="14" height="4" fill="#147f80"/><text x="720" y="94" class="k">漂移前</text><rect x="700" y="110" width="14" height="4" fill="#d06d4d"/><text x="720" y="118" class="k">漂移后</text><text x="720" y="142" class="k">虚线：±2σ 参考带</text>
+<text x="30" y="326" class="n">均值显著偏离 0，或方差突然变大，都是需要检查重训练的早期信号。</text>
+</svg>

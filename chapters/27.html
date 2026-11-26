@@ -1,311 +1,236 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-    <title>第27章 生产部署与MLOps</title>
-    <link rel="stylesheet" href="theme.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="description" content="生产部署与 MLOps：从 notebook 到一个可服务、可监控、可回滚的时序预测系统——API 封装、容器化、模型版本与实验追踪、数据漂移与概念漂移、残差监控、自动重训练与安全发布，以及时序数据库与实时流。">
+<title>生产部署与 MLOps · 时间序列分析</title>
+<link rel="stylesheet" href="../assets/css/article.css">
 </head>
 <body>
-<div class="double-border">
-<div class="container">
-    <div class="sidebar">
-        <h3>📈 课程目录</h3>
-        <ul class="chapter-list">
-            <li><a href="01.html">第1章 认识时间序列</a></li>
-            <li><a href="02.html">第2章 时序的组成与分解</a></li>
-            <li><a href="03.html">第3章 平稳性</a></li>
-            <li><a href="04.html">第4章 自相关分析</a></li>
-            <li><a href="05.html">第5章 指数平滑</a></li>
-            <li><a href="06.html">第6章 时间序列回归</a></li>
-            <li><a href="07.html">第7章 频谱分析入门</a></li>
-            <li><a href="08.html">第8章 自回归模型(AR)</a></li>
-            <li><a href="09.html">第9章 移动平均模型(MA)</a></li>
-            <li><a href="10.html">第10章 ARMA模型</a></li>
-            <li><a href="11.html">第11章 差分与ARIMA</a></li>
-            <li><a href="12.html">第12章 季节性ARIMA</a></li>
-            <li><a href="13.html">第13章 建模实践与诊断</a></li>
-            <li><a href="14.html">第14章 预测与评估</a></li>
-            <li><a href="15.html">第15章 波动率建模(ARCH/GARCH)</a></li>
-            <li><a href="16.html">第16章 多元时间序列(VAR)</a></li>
-            <li><a href="17.html">第17章 协整与误差修正模型</a></li>
-            <li><a href="18.html">第18章 状态空间与卡尔曼滤波</a></li>
-            <li><a href="19.html">第19章 时序特征工程</a></li>
-            <li><a href="20.html">第20章 树模型与时序预测</a></li>
-            <li><a href="21.html">第21章 Prophet与自动预测</a></li>
-            <li><a href="22.html">第22章 时序交叉验证</a></li>
-            <li><a href="23.html">第23章 循环神经网络</a></li>
-            <li><a href="24.html">第24章 卷积与时序</a></li>
-            <li><a href="25.html">第25章 Transformer与时序</a></li>
-            <li><a href="26.html">第26章 基础模型与扩散模型</a></li>
-            <li><a href="27.html" class="active">第27章 生产部署与MLOps</a></li>
-            <li><a href="28.html">第28章 综合实战项目</a></li>
-        </ul>
-    </div>
-    <div class="main-content">
+<a class="skip" href="#content">跳转至正文</a>
+<div class="page-shell">
+<nav class="aside" aria-label="课程与章内目录">
+<strong><a href="../index.html">时间序列分析</a></strong>
+<div class="separ"></div>
+<div class="toc-links">
+<a href="01.html">01　认识时间序列</a><a href="02.html">02　时序分解</a><a href="03.html">03　平稳性</a><a href="04.html">04　自相关</a><a href="05.html">05　指数平滑</a><a href="06.html">06　时间序列回归</a><a href="07.html">07　频谱分析</a>
+<a href="08.html">08　自回归模型 AR</a><a href="09.html">09　移动平均模型 MA</a><a href="10.html">10　ARMA 模型</a><a href="11.html">11　差分与 ARIMA</a><a href="12.html">12　季节性 ARIMA</a><a href="13.html">13　建模实践与诊断</a>
+<a href="14.html">14　预测与评估</a><a href="15.html">15　波动率建模</a><a href="16.html">16　向量自回归 VAR</a><a href="17.html">17　协整与 VECM</a><a href="18.html">18　状态空间与卡尔曼滤波</a><a href="19.html">19　时序特征工程</a><a href="20.html">20　树模型与时序预测</a><a href="21.html">21　Prophet 与自动预测</a><a href="22.html">22　时序交叉验证</a><a href="23.html">23　循环神经网络</a><a href="24.html">24　卷积与时序</a><a href="25.html">25　Transformer 与时序</a><a href="26.html">26　基础模型与扩散模型</a><a href="27.html" aria-current="page">27　生产部署与 MLOps</a>
+</div>
+<div class="separ"></div>
+<strong>本章路线</strong>
+<div class="toc-links">
+<a href="#gap">01 · 最后一公里为何走样</a><a href="#api">02 · 最小可行部署</a><a href="#docker">03 · 容器化</a><a href="#registry">04 · 版本与实验追踪</a><a href="#drift">05 · 两类漂移</a><a href="#monitor">06 · 残差监控</a><a href="#retrain">07 · 重训练与发布</a><a href="#stream">08 · 时序库与实时流</a><a href="#checklist">09 · 就绪清单</a><a href="#experiment">10 · Python 实验</a><a href="#wrap">11 · 小结</a>
+</div>
+<div class="separ"></div>
+<a href="../index.html#catalog">全部课程 →</a>
+</nav>
+<main id="content">
+<article class="article">
+<header>
+<p class="eyebrow">CHAPTER 27 / 28 · DEPLOYMENT &amp; MLOPS</p>
+<h1>生产部署与 MLOps：让预测在线上持续可用</h1>
+<p class="dek">一个在 notebook 里表现良好的模型，上线后可能悄悄失效。这一章讲清从训练到服务的工程链路，以及为什么对时序预测而言，「部署」之后还有一半的工作。</p>
+<p class="meta">机制图解 · 原生数学排版 · 可复现模拟 · 边界与诊断</p>
+</header>
+<p>一个模型在 notebook 里可以很漂亮：交叉验证的误差很小，插图也能直接放进汇报。但它一旦开始对真实未来做预测，评价标准就变了——不再是一次性的离线评估，而是<strong>每天、每周持续兑现的承诺</strong>。数据会变、映射会变、代码环境会变，模型于是慢慢老去。</p>
+<p>这一章把“从训练到服务”的链路拆开：怎样把一个模型包成别人能调用的服务，怎样管理它的版本，怎样用<a href="13.html">残差诊断</a>与<a href="22.html">时序验证</a>的思路去监控它，以及什么时候该重训练、怎样安全地发布。核心观点只有一句：<strong>对时序预测而言，“部署”不是终点，而是监控与维护的起点。</strong></p>
 
-        <h2>第27章 生产部署与MLOps</h2>
-
-        <p>如果你做过几年数据科学工作，大概率见过这样的场景：一个模型在 Jupyter Notebook 里的表现堪称完美——MAE 刷新了团队纪录，可视化结果漂亮得可以直接放进论文。但当它被部署到生产环境后，一切开始悄悄走样。预测偏差逐日增大，监控面板上的红色警报一个接一个亮起，最终整个 pipeline 被回滚到简单的移动平均线。</p>
-
-        <p>从模型开发到生产部署之间的距离，被称为"最后一公里"问题。对于时间序列预测，这个问题尤其棘手——因为时序数据是非静态的，数据分布会变化，模型会老化，环境会漂移。本章我们就来系统地梳理这"最后一公里"该怎么走。</p>
-
-        <h3>27.1 从 Notebook 到 API：最小可行部署</h3>
-
-        <p>假设你已经在 Jupyter Notebook 里训练好了一个 ARIMA 模型，要怎么让别人用起来？最直接的方式是用 FastAPI 把它封装成一个 REST API。</p>
-
-        <pre><code># model_serve.py — 用 FastAPI 部署时序模型
-import pickle
+<section id="gap" aria-labelledby="gap-head">
+<h2 id="gap-head">01 · 最后一公里为何会走样</h2>
+<p>先厘清一个常见误解：离线效果好、上线就差，往往<strong>不是</strong>模型“训练得不够好”，而是训练与部署面对的数据分布不同。离线评估用的是历史切成的时间片；上线后，数据是持续新生成的，而<a href="03.html">平稳性</a>在这里恰恰是最脆弱的假设——很多真实序列的均值、方差或季节性结构会随时间漂移。</p>
+<p>把这条链路画出来，就能看清“部署”之后还有哪些环节：</p>
+<figure id="27-loop"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" role="img" aria-labelledby="lp-title lp-desc"><title id="lp-title">时序预测的部署与监控闭环</title><desc id="lp-desc">新数据经清洗与特征进入训练与验证，产出模型进入 Model Registry 管理版本与阶段，再由在线推理 API 提供预测；预测结果进入残差监控，一旦检测到漂移便触发重训练，回到训练环节，形成闭环。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12.5px;fill:#41706e}</style><rect x="1" y="1" width="958" height="318" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">从数据到监控：部署之后的闭环</text>
+<g><rect x="20" y="86" width="130" height="54" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="85" y="108" class="n" text-anchor="middle">新数据</text><text x="85" y="126" class="k" text-anchor="middle">定时 / 实时</text>
+<rect x="178" y="86" width="130" height="54" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="243" y="108" class="n" text-anchor="middle">清洗 · 特征</text><text x="243" y="126" class="k" text-anchor="middle">第 19 章</text>
+<rect x="336" y="86" width="130" height="54" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="401" y="108" class="n" text-anchor="middle">训练 + 验证</text><text x="401" y="126" class="k" text-anchor="middle">第 22 章</text>
+<rect x="494" y="86" width="130" height="54" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="559" y="104" class="n" text-anchor="middle">Model</text><text x="559" y="120" class="n" text-anchor="middle">Registry</text><text x="559" y="136" class="k" text-anchor="middle">版本 / 阶段</text>
+<rect x="652" y="86" width="130" height="54" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="717" y="108" class="n" text-anchor="middle">在线推理 API</text><text x="717" y="126" class="k" text-anchor="middle">预测服务</text>
+<rect x="810" y="86" width="130" height="54" rx="8" fill="#fff4e3" stroke="#916c22"/><text x="875" y="108" class="n" text-anchor="middle">残差监控</text><text x="875" y="126" class="k" text-anchor="middle">漂移告警</text></g>
+<g stroke="#9fb0ad" stroke-width="2" fill="none"><path d="M150 113 h24" marker-end="url(#lp-a)"/><path d="M308 113 h24" marker-end="url(#lp-a)"/><path d="M466 113 h24" marker-end="url(#lp-a)"/><path d="M624 113 h24" marker-end="url(#lp-a)"/><path d="M782 113 h24" marker-end="url(#lp-a)"/></g>
+<defs><marker id="lp-a" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#9fb0ad"/></marker><marker id="lp-b" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#d06d4d"/></marker></defs>
+<path d="M875 140 V232 H401 V140" fill="none" stroke="#d06d4d" stroke-width="2.4" stroke-dasharray="6 4" marker-end="url(#lp-b)"/>
+<text x="638" y="258" class="n" text-anchor="middle" fill="#b2563a">检测到漂移 → 触发重训练（验证通过后才替换线上版本）</text>
+<text x="30" y="292" class="n">实线为数据流转，虚线为监控反馈；没有反馈环的系统，模型只会在无人察觉时降级。</text></svg>
+<figcaption>虚线反馈环是本章重点：预测服务产出残差，残差监控判断是否需要重训练，重训练产物必须再经时序验证才允许替换线上模型。<strong>图为工程流程示意，不含任何真实吞吐或延迟数字。</strong></figcaption></figure>
+</section>
+<section id="api" aria-labelledby="api-head">
+<h2 id="api-head">02 · 最小可行部署：把模型包成一个 API</h2>
+<p>让别人用起来，最直接的方式是用一个 Web 框架把模型封装成 HTTP 接口。下面是一个<strong>最小骨架</strong>（FastAPI），它只负责“加载模型 → 校验输入 → 返回预测”。真实服务还需预热、超时、并发隔离与鉴权，但骨架能先把职责分开。</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code># model_serve.py — 最小预测服务骨架
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 app = FastAPI(title="Time Series Forecasting API")
-
-# 加载训练好的模型
-with open("model.pkl", "rb") as f:
-    model = pickle.load(f)
+MODEL = load_model("model.pkl")          # 启动时加载一次，避免每请求重载
 
 class ForecastRequest(BaseModel):
-    history: list[float]
-    steps: int = 12
+    history: list[float]                 # 已知历史，至少需要模型的最小上下文
+    steps: int = 14
 
-class ForecastResponse(BaseModel):
-    forecast: list[float]
-    upper_bound: list[float] | None = None
-    lower_bound: list[float] | None = None
-
-@app.post("/predict", response_model=ForecastResponse)
+@app.post("/predict")
 def predict(req: ForecastRequest):
-    if len(req.history) &lt; 10:
-        raise HTTPException(400, "History must contain at least 10 points")
-    # 模型预测
-    forecast = model.forecast(y=np.array(req.history), steps=req.steps)
-    return ForecastResponse(forecast=forecast.tolist())
+    if len(req.history) &lt; MIN_CONTEXT:
+        raise HTTPException(400, "history too short")
+    y = np.asarray(req.history, dtype=float)
+    point = MODEL.forecast(y, steps=req.steps)   # 返回点预测与区间
+    return {"forecast": point.tolist()}
 
 # 启动：uvicorn model_serve:app --host 0.0.0.0 --port 8000</code></pre>
+<p>这里有一个时序特有的坑：模型往往有一个<strong>最小历史长度</strong>（ARIMA 需要足够的滞后与差分，深度学习需要固定的上下文窗口）。接口必须显式校验，而不是把残缺输入喂给模型后再崩。另一个高频问题是<strong>冷启动</strong>：首次请求触发模型加载，P99 延迟会出现长尾，通常用预加载或预热请求解决。</p>
+</section>
 
-        <p>这只是一个起点。实际生产中，你还需要考虑模型加载的预热（避免冷启动延迟）、请求级别的异常隔离、超时控制和并发管理。但至少，你的模型已经有了一个可以被业务系统调用的 HTTP 接口。</p>
-
-        <h3>27.2 Docker 容器化</h3>
-
-        <p>为了让模型能在任何环境中一致地运行，Docker 是标配。一个简单的 Dockerfile 如下：</p>
-
-        <pre><code>FROM python:3.11-slim
-
+<section id="docker" aria-labelledby="docker-head">
+<h2 id="docker-head">03 · 容器化：把环境一起打包</h2>
+<p>“本地能跑、服务器跑不了”几乎总是依赖版本差异造成的。容器化把代码、依赖与运行时一起固化，让训练环境和推理环境尽量一致。一个最小 Dockerfile：</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>FROM python:3.11-slim
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
+RUN pip install --no-cache-dir -r requirements.txt   # 版本在 requirements 中行锁定
 COPY model.pkl model_serve.py ./
-
 EXPOSE 8000
 CMD ["uvicorn", "model_serve:app", "--host", "0.0.0.0", "--port", "8000"]</code></pre>
+<p>注意 <code>requirements.txt</code> 应<strong>锁定版本</strong>：时序库（statsmodels、numpy 等）在大版本间可能出现行为变化，不锁定会让“同样的代码”在不同时间构建出不同结果。容器化的收益（环境一致、可版本化、可弹性伸缩）也伴随着成本：镜像越大启动越慢，模型文件通常应放在外部存储而非烘进镜像。</p>
+</section>
+<section id="registry" aria-labelledby="registry-head">
+<h2 id="registry-head">04 · 版本与实验追踪：回答“线上跑的是哪个”</h2>
+<p>时序模型往往需要定期重训（每天/每周），每次都会产生一个新版本。没有版本管理，很快会出现两个无法回答的问题：线上到底跑的是哪个？上周效果更好的那个配置是什么？</p>
+<p>这类工具（如 MLflow）通常提供三块能力：<strong>实验追踪</strong>（记录参数、指标与产物）、<strong>模型注册</strong>（管理版本与阶段，如 Staging / Production / Archived）、<strong>服务</strong>（把注册的模型部署为接口）。使用时关键不是工具本身，而是<strong>记全什么</strong>：</p>
+<ul>
+<li><strong>数据窗口</strong>：训练用了哪段时间、怎样切分、随机种子是多少；</li>
+<li><strong>超参</strong>：ARIMA 阶数、季节周期、树模型深度等；</li>
+<li><strong>指标</strong>：不只 MAE/RMSE，还要 MASE（跨序列可比的相对误差，见 <a href="14.html">第 14 章</a>）；</li>
+<li><strong>残差诊断</strong>：残差的 <a href="04.html">Ljung-Box</a> 检验 p 值。</li>
+</ul>
+<div class="callout"><strong>为什么额外记残差诊断：</strong>误差指标小不等于模型没漏掉结构。若 MAE 看着不错，但残差仍明显自相关，说明模型没有充分利用时序信息；这个信号在重训时比单一误差值更有指导意义。</div>
+</section>
 
-        <p>容器化的好处显而易见：环境一致性、版本控制和弹性伸缩。部署时只需要 <code>docker build -t ts-forecast .</code> 然后推到你的容器 registry，Kubernetes 集群或 ECS 直接拉取运行即可。</p>
-
-        <h3>27.3 模型版本管理：MLflow</h3>
-
-        <p>在时序项目中，你会频繁地重新训练模型——可能是定期（每天/每周），也可能是触发的（检测到 drift 后）。每次训练都会产生一个新的模型版本。没有版本管理的话，你很快会陷入混乱：当前线上跑的是哪个版本？上个月的效果为什么比这个好？谁动了什么？</p>
-
-        <p>MLflow 是目前最广泛使用的模型生命周期管理工具。它提供三个核心功能：</p>
-
-        <ul>
-            <li><strong>Experiment Tracking</strong>：记录每次实验的参数、指标和产物</li>
-            <li><strong>Model Registry</strong>：管理模型版本、状态（Staging / Production / Archived）</li>
-            <li><strong>Serving</strong>：将模型部署为 REST API</li>
-        </ul>
-
-        <div class="tip">
-            <strong>实用技巧：</strong>在时序预测项目中，除了记录常规指标（MAE, RMSE），我强烈建议额外记录 validation 集的 <strong>MASE</strong>（Mean Absolute Scaled Error）和 <strong>预测残差的自相关检验 p-value</strong>。后者可以帮你判断模型是否漏掉了重要的时序模式——即使 MAE 看起来不错，如果残差仍有自相关，说明模型没有充分捕捉数据中的信息。
-        </div>
-
-        <h3>27.4 数据漂移与概念漂移</h3>
-
-        <p>时序预测生产化中最容易被忽视、也是造成问题最多的一环：漂移检测。</p>
-
-        <ul>
-            <li><strong>Data Drift（数据漂移）</strong>：输入数据的分布发生了变化。例如，你的模型是在 2020-2023 年数据上训练的，而 2024 年用户行为因某个大事件发生了变化，导致输入特征的分布偏移。</li>
-            <li><strong>Concept Drift（概念漂移）</strong>：输入到输出的映射关系发生了变化。例如，过去"促销活动"意味着销量增长 50%，现在用户对促销已经疲劳，同样的促销力度只带来 10% 的增长。</li>
-        </ul>
-
-        <p>检测数据漂移最简单的方式是监控预测残差（residual）的统计量：如果残差的均值显著偏离 0，或者残差的方差突然增大，很可能就是 drift 的信号。更系统的方法是用 Population Stability Index（PSI）或 Kolmogorov-Smirnov 检验来比较实时数据分布和训练数据分布。</p>
-
-        <pre><code># 用一个简单规则检测 data drift
-import numpy as np
-
-def detect_drift(residuals: np.ndarray, window: int = 100) -> bool:
-    """
-    基于残差均值和标准差的滑动窗口 drift 检测
-    返回 True 表示检测到漂移
-    """
-    recent_mean = np.mean(residuals[-window:])
-    recent_std = np.std(residuals[-window:])
-
-    # 如果最近残差均值显著偏离 0（超过 2 倍标准差），触发告警
-    if abs(recent_mean) > 2 * recent_std / np.sqrt(window):
-        return True
-    # 如果最近残差标准差比历史标准差大了 50%，触发告警
-    historical_std = np.std(residuals[:-window]) if len(residuals) > window else recent_std
-    if recent_std > 1.5 * historical_std:
-        return True
-    return False
-
-# 模拟使用
-residuals = np.random.normal(0, 1, 1000)
-# 注入漂移
-residuals[-50:] += 0.8
-print("Drift detected:", detect_drift(residuals))  # True</code></pre>
-
-        <h3>27.5 自动重训练 Pipeline</h3>
-
-        <p>检测到 drift 后，你需要自动化的重训练流程。一个典型的时序自动重训练 pipeline 包含：</p>
-
-        <ol>
-            <li>数据采集管道定时拉取新数据（每小时/每天）</li>
-            <li>验证新数据的完整性和质量</li>
-            <li>用最新的训练窗口（如最近 365 天）重新训练模型</li>
-            <li>在留出的 validation 集上验证新模型 vs 旧模型</li>
-            <li>如果新模型显著优于旧模型（或旧模型已 drift），将新模型推送到 Model Registry 的 Production 阶段</li>
-            <li>触发蓝绿部署或金丝雀发布</li>
-        </ol>
-
-        <div class="highlight">
-            <strong>关键原则：</strong>自动重训练不是越频繁越好。尤其对于统计模型（ARIMA、ETS），每次重训练都需要重新搜索超参数，如果数据变化不大，新的超参数可能反而导致预测不稳定。一个稳妥的做法是：<strong>定期重训练（如每周）</strong>加上 <strong>drift 触发重训练</strong>，两者并行。
-        </div>
-
-        <h3>27.6 时序数据库与实时流处理</h3>
-
-        <p>当你的预测系统需要处理实时数据流（比如每秒钟接入的 IoT 传感器数据），传统的关系型数据库就力不从心了。这时你需要时序数据库（Time Series Database，TSDB）和流处理框架。</p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>工具</th>
-                    <th>类型</th>
-                    <th>适用场景</th>
-                    <th>特点</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>InfluxDB</td>
-                    <td>时序数据库</td>
-                    <td>IoT 监控、运维指标</td>
-                    <td>类 SQL 查询，压缩率高，内置持续查询</td>
-                </tr>
-                <tr>
-                    <td>TimescaleDB</td>
-                    <td>时序数据库</td>
-                    <td>需要与关系数据关联的场景</td>
-                    <td>基于 PostgreSQL，支持完整 SQL</td>
-                </tr>
-                <tr>
-                    <td>Apache Kafka</td>
-                    <td>流处理平台</td>
-                    <td>实时数据管道的中间层</td>
-                    <td>高吞吐、持久化、支持 exactly-once</td>
-                </tr>
-                <tr>
-                    <td>Apache Flink</td>
-                    <td>流计算引擎</td>
-                    <td>实时特征计算和预测</td>
-                    <td>状态管理强，低延迟</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <p>一个经典的实时预测架构是：<strong>传感器 → Kafka → Flink（特征计算）→ ML Model Server（推理）→ InfluxDB（结果存储 + 监控面板）</strong>。每一层都有明确的职责，可以独立扩缩容。</p>
-
-        <h3>27.7 生产就绪检查清单</h3>
-
-        <p>在把模型推到生产环境之前，建议对照下面这份清单逐项确认：</p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>类别</th>
-                    <th>检查项</th>
-                    <th>说明</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>性能</td>
-                    <td>推理延迟满足 SLA</td>
-                    <td>P99 延迟必须在业务容忍范围内（通常 &lt; 500ms）</td>
-                </tr>
-                <tr>
-                    <td>性能</td>
-                    <td>吞吐量测试通过</td>
-                    <td>能承受预期峰值 QPS 的 2-3 倍压力</td>
-                </tr>
-                <tr>
-                    <td>可靠性</td>
-                    <td>模型加载有预热机制</td>
-                    <td>避免部署更新时的冷启动长尾延迟</td>
-                </tr>
-                <tr>
-                    <td>可靠性</td>
-                    <td>降级方案已定义</td>
-                    <td>模型不可用时 fallback 到简单 baseline</td>
-                </tr>
-                <tr>
-                    <td>监控</td>
-                    <td>预测残差实时监控已部署</td>
-                    <td>每批次预测后自动计算残差统计</td>
-                </tr>
-                <tr>
-                    <td>监控</td>
-                    <td>Drift 检测告警已配置</td>
-                    <td>PSI / KS 检验或残差规则告警</td>
-                </tr>
-                <tr>
-                    <td>运维</td>
-                    <td>模型版本可回滚</td>
-                    <td>MLflow Registry 标记旧版本可快速恢复</td>
-                </tr>
-                <tr>
-                    <td>运维</td>
-                    <td>自动重训练 pipeline 就绪</td>
-                    <td>定期 + drift 触发两种触发方式</td>
-                </tr>
-                <tr>
-                    <td>安全</td>
-                    <td>API 鉴权已配置</td>
-                    <td>预测接口不能对公网开放</td>
-                </tr>
-                <tr>
-                    <td>安全</td>
-                    <td>输入校验严格</td>
-                    <td>拒绝异常输入防止模型推理崩溃</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h3>27.8 真实故事：一个没有被发现的 drift</h3>
-
-        <p>这是我亲身经历的一个教训。一家电商平台用 Prophet 模型做日销售额预测，模型在上线后的前三个月表现非常好，MAPE 保持在 8% 左右。团队非常满意，没有人再去关注它。</p>
-
-        <p>到了第四个月，运营部门开始搞"满减活动"——这是过去没有的模式。但模型训练数据中没有任何促销相关的特征。残差开始慢慢增大，但增大的速度很慢——每周 MAPE 上涨 0.5%，根本不足以引起注意。</p>
-
-        <p>直到第六个月，财务部门在季度汇报时发现：预测和实际的偏差已经达到了 23%。这三个月里，业务部门基于错误的预测做了库存计划和资金安排，造成了数百万元的损失。</p>
-
-        <p>问题出在哪里？<strong>没有 drift detection。</strong>团队部署了模型，但没有部署任何监控和告警机制。模型静默地降级了整整三个月，没有人注意到。事后复盘时，团队在 pipeline 里加上了一个简单的残差监控——如果连续 7 天的 MAPE 超过 15%，自动告警并触发重训练。这是十几行代码就能实现的防护。</p>
-
-        <div class="warning">
-            <strong>血的教训：</strong>在时序预测中，一个没有被监控的模型比没有模型更危险——因为你在基于一个你自以为有效、实际上已经失效的工具做决策。<strong>"部署"不等于"交付"，"上线"不等于"结束"。</strong>一个完整的时序 ML 系统，监控和告警和模型的预测能力同等重要。
-        </div>
-
-        <p>从模型的开发到生产部署，我们完成了一个完整的闭环。最后一章，让我们把所有知识融合到一起，做一个端到端的综合实战项目。</p>
-
-        <div class="footer-nav">
-            <a href="26.html">← 上一章</a>
-            <a href="index.html">📖 返回目录</a>
-            <a href="28.html">下一章 →</a>
-        </div>
-    </div>
+<section id="drift" aria-labelledby="drift-head">
+<h2 id="drift-head">05 · 数据漂移与概念漂移</h2>
+<p>分布会变，但“变的是哪一部分”决定了监控手段不同，需要分开：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">类型</th><th scope="col">改变了什么</th><th scope="col">典型场景</th><th scope="col">常见信号</th></tr></thead><tbody>
+<tr><td>数据漂移<br>data drift</td><td>输入分布 <math class="math-inline" aria-label="P 左括号 X 右括号"><mrow><mi>P</mi><mo>(</mo><mi>X</mi><mo>)</mo></mrow></math></td><td>用户结构、渠道或采集口径变化，特征分布整体平移</td><td>特征统计量（均值/方差/分位数）与训练时不一致</td></tr>
+<tr><td>概念漂移<br>concept drift</td><td>输入到输出的映射 <math class="math-inline" aria-label="P 左括号 Y 竖线 X 右括号"><mrow><mi>P</mi><mo>(</mo><mi>Y</mi><mo>|</mo><mi>X</mi><mo>)</mo></mrow></math></td><td>同样的促销力度，过往带动大幅增长，后来因用户疲劳效果变小</td><td>输入没变但预测误差系统性地偏向一侧</td></tr>
+</tbody></table>
 </div>
+<p>时序场景里两者常同时发生，而且概念漂移更难对付：真值只在预测<strong>兑现之后</strong>才能观测到，因此误差信号总是滞后到账。这也意味着“残差监控”往往是能拿到的最早信号，下一节展开。</p>
+</section>
+<section id="monitor" aria-labelledby="monitor-head">
+<h2 id="monitor-head">06 · 残差监控：最早能拿到的漂移信号</h2>
+<p>预测兑现后就能算残差 <math class="math-inline" aria-label="e 下标 t 等于 y 下标 t 减 y hat 下标 t"><mrow><msub><mi>e</mi><mi>t</mi></msub><mo>=</mo><msub><mi>y</mi><mi>t</mi></msub><mo>−</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>t</mi></msub></mrow></math>。如果模型是对的，残差应围绕 0 波动、且大体无自相关（见 <a href="04.html">第 4 章</a>）。于是可以用一个滑窗均值检验残差是否系统性偏了一边：</p>
+<div class="mathbox" data-math-scroll tabindex="0" role="region" style="max-width:100%;overflow-x:auto" aria-label="残差滑窗均值的标准化统计量"><math display="block" aria-label="z 下标 t 等于最近 n 个残差的均值除以 s 比根号 n"><mrow><msub><mi>z</mi><mi>t</mi></msub><mo>=</mo><mfrac><msub><mover accent="true"><mi>e</mi><mo>‾</mo></mover><mi>t</mi></msub><mrow><mi>s</mi><mo>/</mo><msqrt><mi>n</mi></msqrt></mrow></mfrac><mo>,</mo><mspace width="1.2em"/><msub><mover accent="true"><mi>e</mi><mo>‾</mo></mover><mi>t</mi></msub><mo>=</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mi>t</mi><mo>−</mo><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mi>t</mi></munderover><msub><mi>e</mi><mi>i</mi></msub></mrow></math>
+<div class="formula-note">ē<sub>t</sub> 为最近 n 个残差的均值，s 为其样本标准差。若模型无偏且残差近似独立，z<sub>t</sub> 近似服从标准正态，|z| 明显偏大就提示系统性偏差。这只是监控的<strong>启发式阈值</strong>，不代表严格检验。</div>
+</div>
+<p>除了均值偏移，还要看<strong>方差是否变大</strong>：一段时期内残差波动突然变宽，往往说明输入分布不稳。两种信号画在一起就是下面这张图：</p>
+<figure id="27-drift"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 340" role="img" aria-labelledby="dr-title dr-desc"><title id="dr-title">残差监控中的均值偏移与方差增大</title><desc id="dr-desc">上行：残差在漂移起点前围绕 0 波动，之后整体上移到正参考带以外，提示系统性偏差；下行：残差在漂移起点前波动很小，之后方差明显变大，提示输入分布不稳。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12.5px;fill:#41706e}</style><rect x="1" y="1" width="958" height="338" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="34" class="h">残差监控能提前发现两类漂移</text>
+<text x="40" y="72" class="n">① 均值偏移：预测系统性偏一侧</text>
+<line x1="40" y1="118" x2="700" y2="118" stroke="#c9d3d1" stroke-width="1.6"/><line x1="40" y1="94" x2="700" y2="94" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/><line x1="40" y1="142" x2="700" y2="142" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/>
+<polyline points="40,124 80,112 120,126 160,110 200,122 240,116 280,128 320,112 360,124 400,118" fill="none" stroke="#147f80" stroke-width="2.4"/><polyline points="440,90 480,86 520,80 560,84 600,76 640,88 680,82" fill="none" stroke="#d06d4d" stroke-width="2.4"/>
+<text x="40" y="205" class="n">② 方差增大：残差波动变宽</text>
+<line x1="40" y1="250" x2="700" y2="250" stroke="#c9d3d1" stroke-width="1.6"/><line x1="40" y1="222" x2="700" y2="222" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/><line x1="40" y1="278" x2="700" y2="278" stroke="#cfd8d6" stroke-width="1.4" stroke-dasharray="5 4"/>
+<polyline points="40,254 80,246 120,256 160,248 200,258 240,244 280,254 320,250 360,246 400,252" fill="none" stroke="#147f80" stroke-width="2.4"/><polyline points="440,222 480,276 520,214 560,282 600,220 640,274 680,216" fill="none" stroke="#d06d4d" stroke-width="2.4"/>
+<line x1="430" y1="58" x2="430" y2="300" stroke="#9fb0ad" stroke-width="1.6" stroke-dasharray="4 4"/><text x="436" y="54" class="k">漂移起点</text>
+<text x="720" y="96" class="k">漂移前</text><rect x="700" y="86" width="14" height="4" fill="#147f80"/><text x="720" y="120" class="k">漂移后</text><rect x="700" y="110" width="14" height="4" fill="#d06d4d"/><text x="720" y="144" class="k">±2σ 参考带</text><rect x="700" y="138" width="14" height="0" fill="none"/>
+<text x="30" y="326" class="n">均值显著偏离 0，或方差突然变大，都是需要检查重训练的早期信号。</text></svg>
+<figcaption>上半图：残差均值持续偏向一侧，提示映射可能变了（概念漂移）；下半图：残差方差变大，提示输入分布不稳（数据漂移）。<strong>图为机制示意，未使用任何真实业务数据。</strong>阈值需用历史回测校准，否则假期等周而复现的模式会制造大量误报。</figcaption></figure>
+</section>
+<section id="retrain" aria-labelledby="retrain-head">
+<h2 id="retrain-head">07 · 自动重训练与安全发布</h2>
+<p>检测到漂移后，需要一条自动化的重训练流程。一个典型流水线：</p>
+<ol>
+<li>定时拉取新数据（每小时/每天）；</li>
+<li>校验新数据的完整性与质量（缺失率、异常值、单位）；</li>
+<li>用滚动或扩展窗口重训练（窗口策略见 <a href="22.html">第 22 章</a>）；</li>
+<li>在<strong>同一套</strong>时间序列验证上对比新旧模型；</li>
+<li>只有新模型显著更优（或旧模型已漂移）时才提升到 Production；</li>
+<li>用蓝绿或金丝雀方式切换流量，并保留回滚点。</li>
+</ol>
+<div class="highlight">
+<strong>关键原则：</strong>重训练不是越频繁越好。对统计模型（ARIMA、ETS）而言，每次重训都要重新搜索超参，数据变化不大时新超参反而可能带来不稳定。稳妥做法是<strong>定期重训（如每周）</strong>加<strong>漂移触发重训</strong>，两者并行；且任何新版本都必须先经过与旧版本相同的时序验证。
+</div>
+<p>发布方式上，<strong>蓝绿部署</strong>维护两套环境、验证后一次性切流，回滚就是切回去；<strong>金丝雀发布</strong>先让新版承担一小部分流量，观察一段时间再逐步扩大。两者共同的前提是可回滚：在 Model Registry 里把上一个可用版本标清楚，出问题时能快速恢复。</p>
+</section>
+
+<section id="stream" aria-labelledby="stream-head">
+<h2 id="stream-head">08 · 时序数据库与实时流</h2>
+<p>当预测系统需要处理高频数据流（如每秒接入的传感器读数），关系型数据库按行存储、缺乏时间窗口聚合能力就会成为瓶颈。这时会用到时序数据库（TSDB）与流处理框架：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">工具</th><th scope="col">类型</th><th scope="col">典型定位</th><th scope="col">特点</th></tr></thead><tbody>
+<tr><td>InfluxDB</td><td>时序数据库</td><td>IoT 监控、运维指标</td><td>面向时间戳存储，写入吞吐高，支持降采样与保留策略</td></tr>
+<tr><td>TimescaleDB</td><td>时序数据库</td><td>需与关系数据关联的场景</td><td>基于 PostgreSQL，可用完整 SQL 与已有生态</td></tr>
+<tr><td>Kafka</td><td>流处理平台</td><td>实时数据管道的中间层</td><td>高吞吐、可持久化、支持重复消费</td></tr>
+<tr><td>Flink</td><td>流计算引擎</td><td>实时特征计算与预测</td><td>有状态计算、支持事件时间与水位线</td></tr>
+</tbody></table>
+</div>
+<p>一个常见组合是<strong>传感器 → Kafka → Flink（特征计算）→ 模型服务（推理）→ TSDB（结果与监控）</strong>。每一层职责单一，可以独立扩缩容。需要提醒的是，引入流处理会明显提高系统复杂度：如果预测频率只是每天一次，定时批处理通常已经够用，不必为了“实时”而过度设计。</p>
+</section>
+<section id="checklist" aria-labelledby="checklist-head">
+<h2 id="checklist-head">09 · 生产就绪清单</h2>
+<p>把模型推到生产前，建议对照下面这份清单逐项确认。具体阈值（延迟、吞吐）应由业务 SLA 决定，而不是套用固定数字：</p>
+<div class="table-scroll">
+<table><thead><tr><th scope="col">类别</th><th scope="col">检查项</th><th scope="col">说明</th></tr></thead><tbody>
+<tr><td>性能</td><td>推理延迟满足 SLA</td><td>关注 P99 而非均值，冷启动长尾尤其要看</td></tr>
+<tr><td>性能</td><td>吞吐量经过压测</td><td>能承受预期峰值流量并留有余量</td></tr>
+<tr><td>可靠性</td><td>模型加载有预热</td><td>避免部署更新时的首次请求延迟</td></tr>
+<tr><td>可靠性</td><td>降级方案已定义</td><td>模型不可用时回退到 seasonal-naive 等简单 baseline</td></tr>
+<tr><td>监控</td><td>残差统计实时计算</td><td>每批预测兑现后自动更新残差均值/方差</td></tr>
+<tr><td>监控</td><td>漂移告警已配置</td><td>残差规则或 PSI/KS 等分布对比</td></tr>
+<tr><td>运维</td><td>模型版本可回滚</td><td>Registry 中旧版本随时可取回</td></tr>
+<tr><td>运维</td><td>重训练流水线就绪</td><td>定期与漂移触发两种方式并行</td></tr>
+<tr><td>安全</td><td>API 鉴权与限流</td><td>预测接口不应对公网裸开</td></tr>
+<tr><td>安全</td><td>输入校验严格</td><td>拒绝历史长度不足、含 NaN 等异常输入</td></tr>
+</tbody></table>
+</div>
+</section>
+
+<section id="experiment" aria-labelledby="experiment-head">
+<h2 id="experiment-head">10 · Python 实验：残差监控的均值统计量</h2>
+<p>下面用 numpy 模拟一段平稳残差，再人为注入均值漂移，验证上一节的 z 统计量能否区分两种情形。固定随机种子，只依赖 numpy。</p>
+<pre tabindex="0" style="max-width:100%;overflow:auto"><code>import numpy as np
+rng = np.random.default_rng(2701)
+
+def residual_z(e, n=100):
+    &quot;&quot;&quot;最近 n 个残差均值的标准化统计量（假定残差近似独立）&quot;&quot;&quot;
+    w = e[-n:]
+    return w.mean() / (w.std(ddof=1) / np.sqrt(n))
+
+e0 = rng.normal(0.0, 1.0, 1000)          # 平稳、无偏的残差
+e1 = e0.copy()
+e1[-120:] += 0.6                         # 最后 120 点注入均值漂移
+
+print(&quot;无漂移 z =&quot;, round(residual_z(e0), 3))   # ≈ 0.357
+print(&quot;有漂移 z =&quot;, round(residual_z(e1), 3))   # ≈ 6.339
+
+assert abs(residual_z(e0)) &lt; 2.0         # 平稳时不应报警
+assert residual_z(e1) &gt; 3.0             # 漂移时明显超阈</code></pre>
+<p>预期结果：无漂移时 z≈0.36，有漂移时 z≈6.34，两条断言均通过。<strong>这是对监控统计量语义的数值验证，不代表任何真实生产系统的误报率</strong>；真实阈值需用历史数据回测校准。</p>
+</section>
+
+<section id="wrap" aria-labelledby="wrap-head">
+<h2 id="wrap-head">11 · 小结</h2>
+<p>这一章把“部署”扩成了一个闭环：服务化与容器化让模型可被调用且环境可复现；版本与实验追踪让每个预测都有出处；残差监控提供最早的漂移信号；自动重训练与安全发布让模型能持续更新而不失控。核心一句：<strong>“上线”不是终点，而是监控与维护的起点。</strong></p>
+<div class="thought"><strong>上线前请再问自己：</strong>线上到底跑的是哪个版本？残差在实时被监控吗？检测到漂移后，是自动重训还是人工介入？新版本能不能一键回滚？</div>
+<p>下一章把这门课的知识汇成一个端到端项目：从数据清洗到集成建模，再到部署与监控。</p>
+</section>
+
+<section id="references">
+<h2>进一步阅读与技术核对</h2>
+<p>引用指向官方文档与公开教材；工具行为以对应版本文档为准。</p>
+<ol class="refs">
+<li><a href="https://otexts.com/fpp3/" target="_blank" rel="noopener noreferrer">Hyndman &amp; Athanasopoulos：Forecasting: Principles and Practice（第 3 版，在线）</a></li>
+<li><a href="https://mlflow.org/docs/latest/index.html" target="_blank" rel="noopener noreferrer">MLflow 官方文档：Tracking、Model Registry 与 Serving</a></li>
+<li><a href="https://docs.evidentlyai.com/" target="_blank" rel="noopener noreferrer">Evidently 文档：数据漂移与模型监控指标</a></li>
+<li><a href="https://www.kaggle.com/competitions/m5-forecasting-accuracy" target="_blank" rel="noopener noreferrer">Kaggle M5 Forecasting：零售分层时序预测的公开案例与接口</a></li>
+</ol>
+</section>
+
+<nav class="bottom-nav" aria-label="章节导航"><a href="26.html">← 上一章</a><a href="../index.html#catalog">目录</a><a href="28.html">下一章 →</a></nav>
+</article>
+</main>
 </div>
 </body>
 </html>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" role="img" aria-labelledby="lp-title lp-desc">
+<title id="lp-title">时序预测的部署与监控闭环</title>
+<desc id="lp-desc">新数据经清洗与特征进入训练与验证，产出模型进入 Model Registry 管理版本与阶段，再由在线推理 API 提供预测；预测结果进入残差监控，一旦检测到漂移便触发重训练，回到训练环节，形成闭环。</desc>
+<style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}.k{font-size:12.5px;fill:#41706e}</style>
+<rect x="1" y="1" width="958" height="318" rx="13" fill="#fffdf9" stroke="#dce7e4"/>
+<text x="30" y="40" class="h">从数据到监控：部署之后的闭环</text>
+<g><rect x="20" y="86" width="130" height="54" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="85" y="108" class="n" text-anchor="middle">新数据</text><text x="85" y="126" class="k" text-anchor="middle">定时 / 实时</text>
+<rect x="178" y="86" width="130" height="54" rx="8" fill="#e8f4f0" stroke="#147f80"/><text x="243" y="108" class="n" text-anchor="middle">清洗 · 特征</text><text x="243" y="126" class="k" text-anchor="middle">第 19 章</text>
+<rect x="336" y="86" width="130" height="54" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="401" y="108" class="n" text-anchor="middle">训练 + 验证</text><text x="401" y="126" class="k" text-anchor="middle">第 22 章</text>
+<rect x="494" y="86" width="130" height="54" rx="8" fill="#eef0fa" stroke="#7461ba"/><text x="559" y="104" class="n" text-anchor="middle">Model Registry</text><text x="559" y="122" class="n" text-anchor="middle">版本 / 阶段</text>
+<rect x="652" y="86" width="130" height="54" rx="8" fill="#fbe9e2" stroke="#d06d4d"/><text x="717" y="108" class="n" text-anchor="middle">在线推理 API</text><text x="717" y="126" class="k" text-anchor="middle">预测服务</text>
+<rect x="810" y="86" width="130" height="54" rx="8" fill="#fff4e3" stroke="#916c22"/><text x="875" y="108" class="n" text-anchor="middle">残差监控</text><text x="875" y="126" class="k" text-anchor="middle">漂移告警</text></g>
+<g stroke="#9fb0ad" stroke-width="2" fill="none"><path d="M150 113 h24" marker-end="url(#lp-a)"/><path d="M308 113 h24" marker-end="url(#lp-a)"/><path d="M466 113 h24" marker-end="url(#lp-a)"/><path d="M624 113 h24" marker-end="url(#lp-a)"/><path d="M782 113 h24" marker-end="url(#lp-a)"/></g>
+<defs><marker id="lp-a" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#9fb0ad"/></marker><marker id="lp-b" markerWidth="10" markerHeight="10" refX="7" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill="#d06d4d"/></marker></defs>
+<path d="M875 140 V232 H401 V140" fill="none" stroke="#d06d4d" stroke-width="2.4" stroke-dasharray="6 4" marker-end="url(#lp-b)"/>
+<text x="638" y="258" class="n" text-anchor="middle" fill="#b2563a">检测到漂移 → 触发重训练（验证通过后才替换线上版本）</text>
+<text x="30" y="292" class="n">实线为数据流转，虚线为监控反馈；没有反馈环的系统，模型只会在无人察觉时降级。</text>
+</svg>
