@@ -25,6 +25,12 @@ function data(kind,v){
   const half=p>0&&p<1?Math.log(0.5)/Math.log(p):Infinity;
   return {values,text:'α=0.10，β='+v.toFixed(2)+'，α+β='+p.toFixed(2)+'；冲击按 (α+β) 的幂衰减'+(p<1?'，半衰期约 '+half.toFixed(1)+' 期。':'（≥1，方差过程非平稳）。')};
  }
+ if(kind==='vanish'){
+  const raw=Array.from({length:12},(_,h)=>Math.pow(v,h+1));
+  const mx=Math.max(...raw);
+  const g12=Math.pow(v,12);
+  return {values:raw.map(x=>x/mx),text:'循环权重尺度 w='+v.toFixed(2)+'：12 步后梯度相对初始约为 w^12='+g12.toFixed(3)+'。'+(g12<0.5?'w<1 → 早期状态的梯度随步数指数消失。':g12>1.2?'w>1 → 梯度随步数指数放大，可能爆炸。':'w≈1 → 梯度可跨越较长步数保持。')}
+ }
  if(kind==='leaves'){
   const m=Math.max(1,Math.round(v));
   const xs=Array.from({length:12},(_,i)=>1.6*i/11);

@@ -7,6 +7,7 @@
 <meta name="description" content="循环神经网络：从 RNN 的隐藏状态与权重共享，到梯度消失/爆炸的原因、LSTM 门控与细胞状态、GRU、双向与堆叠结构、Seq2Seq 自回归，以及 teacher forcing、梯度裁剪等训练技巧。">
 <title>循环神经网络 · 时间序列分析</title>
 <link rel="stylesheet" href="../assets/css/article.css">
+<script src="../assets/js/interactive.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#content">跳转至正文</a>
@@ -64,6 +65,7 @@
 </div>
 <figure id="23-gradient"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="g-title g-desc"><title id="g-title">梯度随回传步数的衰减</title><desc id="g-desc">横轴为回传步数，纵轴为梯度大小（对数刻度）。普通 RNN 的曲线快速下降，而带加法通道的 LSTM 曲线下降慢得多。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">回传越远，梯度越小——加法通道让衰减变慢</text><line x1="80" y1="240" x2="880" y2="240" stroke="#cfdedb"/><line x1="80" y1="80" x2="80" y2="240" stroke="#cfdedb"/><path d="M80 96 C220 150 320 215 420 232 L880 238" fill="none" stroke="#d06d4d" stroke-width="2.8"/><path d="M80 96 C220 120 400 150 600 176 L880 196" fill="none" stroke="#147f80" stroke-width="2.8"/><text x="500" y="228" class="n" fill="#b2563a">普通 RNN：快速衰减</text><text x="560" y="166" class="n" fill="#0f6a6b">LSTM：细胞状态加法通道</text><text x="30" y="130" class="n">梯度大小</text><text x="820" y="266" class="n">回传步数 →</text><text x="30" y="285" class="n">纵轴为示意刻度；实际衰减速率取决于权重与激活，不是固定曲线。</text></svg>
 <figcaption>梯度沿时间回传时，普通 RNN 迅速衰减到接近零；LSTM 的细胞状态主要靠加法更新，为梯度提供了一条衰减更慢的通道。<strong>这是 LSTM 能记住更长期依赖的核心原因。</strong>图为机制示意。</figcaption></figure>
+<div class="concept-lab" data-lab="vanish"><label for="vanish-param">循环权重尺度 w = <output data-lab-output for="vanish-param">0.90</output></label><input id="vanish-param" data-lab-input type="range" min="0.6" max="1.1" step="0.05" value="0.90"><div class="lab-explainer" data-lab-description aria-live="polite">w=0.90：12 步后梯度约为初始的 0.28；w>1 时随步数指数放大。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">教学示意：用标量递推 gₕ=wʰ 近似梯度沿时间回传的缩放，横轴为 1 到 12 个回传步，柱高按最大值归一。真实的衰减速率还取决于激活函数导数与每步输入，并非固定曲线。</p></div>
 </section>
 
 <section id="lstm" aria-labelledby="lstm-head">
