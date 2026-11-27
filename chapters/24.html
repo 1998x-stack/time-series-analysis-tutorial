@@ -7,6 +7,7 @@
 <meta name="description" content="卷积与时序：一维卷积作为局部模式匹配器，膨胀卷积与因果卷积如何扩展感受野并避免看到未来，TCN 的残差结构、WaveNet 的跨领域影响，以及 RNN 与 CNN 的选型。">
 <title>卷积与时序 · 时间序列分析</title>
 <link rel="stylesheet" href="../assets/css/article.css">
+<script src="../assets/js/interactive.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#content">跳转至正文</a>
@@ -66,6 +67,7 @@
 <path d="M700 84 L652 154" stroke="#7461ba" stroke-width="1.6" fill="none" marker-end="url(#dl-a)"/><path d="M740 84 L730 154" stroke="#7461ba" stroke-width="1.6" fill="none" marker-end="url(#dl-a)"/><path d="M760 84 L760 154" stroke="#7461ba" stroke-width="1.6" fill="none" marker-end="url(#dl-a)"/>
 <text x="500" y="285" class="n">因果方向 → 只看左侧历史；右侧输入不参与，保证不看到未来。</text></svg>
 <figcaption>堆叠膨胀因果卷积：膨胀率 1、2、4 让顶层输出的感受野迅速变长，而每层参数量不变。<strong>感受野是否覆盖关键滞后，取决于层数与膨率的组合。</strong>图为机制示意。</figcaption></figure>
+<div class="concept-lab" data-lab="dilate"><label for="dilate-param">膨胀因子 d = <output data-lab-output for="dilate-param">2</output></label><input id="dilate-param" data-lab-input type="range" min="1" max="3" step="1" value="2"><div class="lab-explainer" data-lab-description aria-live="polite">d=2，k=3：4 层后感受野约 31 期；d=1 时仅 9 期。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">教学示意：4 层、卷积核 k=3 的膨胀因果卷积，第 l 层膨胀率为 d 的 l−1 次幂；柱高为每层累积感受野（已按最大值归一），横轴为第 1 到 4 层。</p></div>
 </section>
 
 <section id="causal" aria-labelledby="causal-head">

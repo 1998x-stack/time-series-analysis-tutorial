@@ -25,6 +25,13 @@ function data(kind,v){
   const half=p>0&&p<1?Math.log(0.5)/Math.log(p):Infinity;
   return {values,text:'α=0.10，β='+v.toFixed(2)+'，α+β='+p.toFixed(2)+'；冲击按 (α+β) 的幂衰减'+(p<1?'，半衰期约 '+half.toFixed(1)+' 期。':'（≥1，方差过程非平稳）。')};
  }
+ if(kind==='dilate'){
+  const d=Math.max(1,Math.round(v));
+  const rf=[]; let r=1;
+  for(let l=1;l<=4;l++){r+=2*(d**(l-1));rf.push(r);}
+  const mx=Math.max(...rf);
+  return {values:rf.map(x=>x/mx),text:'膨胀因子 d='+d+'，卷积核 k=3：4 层之后的感受野约为 '+rf[3].toFixed(0)+' 期（d=1 时仅 9 期）。层数固定时，感受野随 d 指数增长，而参数量不变。'}
+ }
  if(kind==='vanish'){
   const raw=Array.from({length:12},(_,h)=>Math.pow(v,h+1));
   const mx=Math.max(...raw);
@@ -58,7 +65,7 @@ for(const root of labs){
     const v=Number(slider.value);
     if(!Number.isFinite(v))return;
     const result=data(kind,v);
-    const display=['period','diff','season','leaves'].includes(kind)?String(Math.round(v)):v.toFixed(2);
+    const display=['period','diff','season','leaves','dilate'].includes(kind)?String(Math.round(v)):v.toFixed(2);
     output.value=display;output.textContent=display;
     note.textContent=result.text;
     chart.replaceChildren();
