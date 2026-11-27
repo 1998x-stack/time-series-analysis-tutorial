@@ -25,6 +25,14 @@ function data(kind,v){
   const half=p>0&&p<1?Math.log(0.5)/Math.log(p):Infinity;
   return {values,text:'α=0.10，β='+v.toFixed(2)+'，α+β='+p.toFixed(2)+'；冲击按 (α+β) 的幂衰减'+(p<1?'，半衰期约 '+half.toFixed(1)+' 期。':'（≥1，方差过程非平稳）。')};
  }
+ if(kind==='leaves'){
+  const m=Math.max(1,Math.round(v));
+  const xs=Array.from({length:12},(_,i)=>1.6*i/11);
+  const last=2+3*((m-0.5)/m);
+  const pred=xs.map(x=>x<=1?2+3*((Math.min(m-1,Math.floor(x*m))+0.5)/m):last);
+  const mx=Math.max(...pred);
+  return {values:pred.map(p=>p/mx),text:'叶子数 m='+m+'：训练区间内是 '+m+' 段阶梯；超过训练上界 x=1 后，所有预测都停在最后一片叶子的均值 ≈ '+last.toFixed(2)+'，不再随 x 上升。'}
+ }
  if(kind==='var'){
   const a=Number(v); const A=[[0.5,a],[0.2,0.6]]; const raw=[]; let P=[[1,0],[0,1]];
   for(let h=0;h<12;h++){raw.push(P[0][1]);P=[[A[0][0]*P[0][0]+A[0][1]*P[1][0],A[0][0]*P[0][1]+A[0][1]*P[1][1]],[A[1][0]*P[0][0]+A[1][1]*P[1][0],A[1][0]*P[0][1]+A[1][1]*P[1][1]]];}
@@ -44,7 +52,7 @@ for(const root of labs){
     const v=Number(slider.value);
     if(!Number.isFinite(v))return;
     const result=data(kind,v);
-    const display=kind==='period'||kind==='diff'||kind==='season'?String(Math.round(v)):v.toFixed(2);
+    const display=['period','diff','season','leaves'].includes(kind)?String(Math.round(v)):v.toFixed(2);
     output.value=display;output.textContent=display;
     note.textContent=result.text;
     chart.replaceChildren();

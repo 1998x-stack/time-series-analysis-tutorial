@@ -7,6 +7,7 @@
 <meta name="description" content="树模型与时序预测：讲清梯度提升树的加性拟合机制、为什么它擅长非线性与交互、为何不能外推趋势，以及特征重要性的局限与时序验证中必须避免的 look-ahead bias。">
 <title>树模型与时序预测 · 时间序列分析</title>
 <link rel="stylesheet" href="../assets/css/article.css">
+<script src="../assets/js/interactive.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#content">跳转至正文</a>
@@ -81,6 +82,7 @@
 <figure id="20-extrapolate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" role="img" aria-labelledby="e-title e-desc"><title id="e-title">树模型与线性模型对外推趋势的差异</title><desc id="e-desc">左半段为训练区间：上升趋势上线性拟合与树的分段阶毯都能贴合；右半段为外推区间：线性拟合延续趋势，而树的预测停在上一个阶毯、保持水平。</desc><style>text{fill:#203035;font-family:system-ui,"Noto Sans SC","Microsoft YaHei",sans-serif}.h{font-size:21px;font-weight:750}.n{font-size:13px;fill:#586e72}</style><rect x="1" y="1" width="958" height="298" rx="13" fill="#fffdf9" stroke="#dce7e4"/><text x="30" y="40" class="h">趋势外推：线性延续，树只能停在边界值</text><line x1="70" y1="240" x2="900" y2="240" stroke="#cfdedb"/><rect x="70" y="70" width="480" height="170" fill="#eef4f2"/><text x="220" y="92" class="n">训练区间</text><text x="640" y="92" class="n">外推区间（超出训练范围）</text><line x1="550" y1="70" x2="550" y2="240" stroke="#9fb0ad" stroke-dasharray="6 5"/><line x1="70" y1="230" x2="900" y2="80" stroke="#147f80" stroke-width="3"/><path d="M70 230 L150 230 L150 200 L240 200 L240 170 L330 170 L330 140 L420 140 L420 110 L550 110 L900 110" fill="none" stroke="#d06d4d" stroke-width="2.8"/><text x="700" y="102" class="n" fill="#b2563a">树的预测变水平</text><text x="700" y="70" class="n" fill="#0f6a6b">线性预测继续上升</text><text x="70" y="270" class="n">图为机制示意：真实外推行为还取决于特征里是否包含可外推的时间趋势或差分特征。</text></svg>
 <figcaption>绿色为线性拟合、橙色为树的分段常数拟合：训练区间内两者都能贴合趋势，但进入外推区间后，线性继续上升，树的预测停在上一个阶梯。<strong>这是树模型在时序上的结构性限制，不是调参能解决的。</strong></figcaption></figure>
 <p>实践中有两种应对：一是把趋势<strong>显式建模</strong>（如先差分、去趋势，或用确定性的时间/傅里叶特征让模型学到趋势形状——但傅里叶外推只在周期内可信）；二是把树模型的残差交给一个能外推的组件（线性回归、ARIMA）。直接把“时间序号 t”当作特征能让树在训练区间内拟合趋势，但一旦 t 超出训练范围，同样会撞到边界值。</p>
+<div class="concept-lab" data-lab="leaves"><label for="leaves-param">树的最大叶子数 m = <output data-lab-output for="leaves-param">5</output></label><input id="leaves-param" data-lab-input type="range" min="1" max="12" step="1" value="5"><div class="lab-explainer" data-lab-description aria-live="polite">m=5 时，训练区间内是 5 段阶梯；超过 x=1 后预测停在最后一片叶子，不再上升。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">教学示意：假设真实趋势为 y=2+3x（训练区间 x∈[0,1]），树用等宽分箱的叶子均值近似，越界后沿用最后一片叶子的取值；柱高按最大预测值归一，横轴为 0 到 1.6 的 12 个等距查询点。</p></div>
 </section>
 
 <section id="importance" aria-labelledby="importance-head">
