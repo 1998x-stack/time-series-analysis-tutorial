@@ -25,6 +25,14 @@ function data(kind,v){
   const half=p>0&&p<1?Math.log(0.5)/Math.log(p):Infinity;
   return {values,text:'α=0.10，β='+v.toFixed(2)+'，α+β='+p.toFixed(2)+'；冲击按 (α+β) 的幂衰减'+(p<1?'，半衰期约 '+half.toFixed(1)+' 期。':'（≥1，方差过程非平稳）。')};
  }
+ if(kind==='folds'){
+  const h=Math.max(1,Math.round(v));
+  const N=120, N0=60;
+  const K=Math.max(1,Math.floor((N-N0)/h));
+  const vals=Array.from({length:K},(_,i)=>N0+(i+1)*h);
+  const mx=Math.max(...vals);
+  return {values:vals.map(x=>x/mx),text:'预测步长 h='+h+'：共 '+K+' 折，训练窗口从 '+(N0+h)+' 逐步扩展到 '+(N0+K*h)+'（总样本 '+N+'、初始训练 '+N0+'）。h 越大，折数越少、前向评估点越少，但每折覆盖的预测跨度更长。'}
+ }
  if(kind==='temp'){
   const sc=[0,1,2,3,4,5];
   const ex=sc.map(s=>Math.exp(s/v));
@@ -72,7 +80,7 @@ for(const root of labs){
     const v=Number(slider.value);
     if(!Number.isFinite(v))return;
     const result=data(kind,v);
-    const display=['period','diff','season','leaves','dilate'].includes(kind)?String(Math.round(v)):v.toFixed(2);
+    const display=['period','diff','season','leaves','dilate','folds'].includes(kind)?String(Math.round(v)):v.toFixed(2);
     output.value=display;output.textContent=display;
     note.textContent=result.text;
     chart.replaceChildren();

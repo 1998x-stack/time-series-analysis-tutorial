@@ -7,6 +7,7 @@
 <meta name="description" content="时序交叉验证：为什么随机 K-Fold 会在自相关数据上虚高，扩展窗口与滚动窗口的区别，步长与 fold 数、purging 与 embargo 防泄露，以及如何搭一个可复用的基准对比框架。">
 <title>时序交叉验证 · 时间序列分析</title>
 <link rel="stylesheet" href="../assets/css/article.css">
+<script src="../assets/js/interactive.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#content">跳转至正文</a>
@@ -75,6 +76,7 @@
 <div class="formula-note">E_k 是第 k 个 fold 的误差（MAE/MASE 等）；还应同时报告 E_k 的极差或标准差，防止“平均好看、某段崩盘”。
 </div>
 </div>
+<div class="concept-lab" data-lab="folds"><label for="folds-param">预测步长 h = <output data-lab-output for="folds-param">3</output></label><input id="folds-param" data-lab-input type="range" min="1" max="12" step="1" value="3"><div class="lab-explainer" data-lab-description aria-live="polite">h=3：共 20 折，训练窗口从 63 扩展到 120。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">教学示意：总样本 120、初始训练窗口 60，采用扩展窗口，每折向前推进 h 期。柱高为各折的训练窗口长度（已按最大值归一），横轴为第 1 到第 K 折。</p></div>
 </section>
 
 <section id="purge" aria-labelledby="purge-head">
