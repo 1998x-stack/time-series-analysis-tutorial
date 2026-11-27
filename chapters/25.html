@@ -7,6 +7,7 @@
 <meta name="description" content="Transformer 与时序：自注意力让任意两个时间步直接交互，缩放点积与因果掩码保证不看到未来；位置编码、二次复杂度与分解如何适配时序，以及 Informer、Autoformer、PatchTST、TFT 的核心机制与选型。">
 <title>Transformer 与时序 · 时间序列分析</title>
 <link rel="stylesheet" href="../assets/css/article.css">
+<script src="../assets/js/interactive.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#content">跳转至正文</a>
@@ -64,6 +65,7 @@
 <p>把 softmax 后的权重写成矩阵，它就变成了一个<strong>数据驱动的加权平均</strong>：每一行是一个概率分布，和为 1；第 i 行第 j 列越大，说明第 i 步越依赖第 j 步。与固定权重的移动平均不同，这里的权重随输入内容变化。</p>
 <p>多头注意力把这一过程并行地做 h 次（不同投影），分别捕捉不同的依赖模式，再拼接投影。它不是 h 个独立的模型，而是同一层内并行学习多个关系视角。</p>
 <p>在预测场景中，必须遮住未来：将 j &gt; i 的得分置为 −∞，softmax 后权重为 0。这与<a href="24.html">上一章</a>因果卷积是同一目标——<strong>只看历史，不看未来</strong>。不做遮蔽的自注意力会让每个时间步看到自己的未来，相当于在训练时就把答案泄露给了模型。</p>
+<div class="concept-lab" data-lab="temp"><label for="temp-param">softmax 温度 τ = <output data-lab-output for="temp-param">1.00</output></label><input id="temp-param" data-lab-input type="range" min="0.25" max="4" step="0.25" value="1"><div class="lab-explainer" data-lab-description aria-live="polite">τ=1.00：6 个位置的权重按分数差平滑分配，最大权重居中。</div><div class="mini-bars" data-lab-bars></div><p class="formula-note">教学示意：以 6 个位置的得分 [0,1,2,3,4,5] 为例，权重为 softmax(得分/τ)，柱高就是各位置的注意力权重（总和为 1），横轴为第 1 到 6 个位置。温度是可调的尖锐度旋钮：越小越集中，越大越均匀。</p></div>
 </section>
 
 <section id="adapt" aria-labelledby="adapt-head">

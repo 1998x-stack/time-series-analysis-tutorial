@@ -25,6 +25,13 @@ function data(kind,v){
   const half=p>0&&p<1?Math.log(0.5)/Math.log(p):Infinity;
   return {values,text:'α=0.10，β='+v.toFixed(2)+'，α+β='+p.toFixed(2)+'；冲击按 (α+β) 的幂衰减'+(p<1?'，半衰期约 '+half.toFixed(1)+' 期。':'（≥1，方差过程非平稳）。')};
  }
+ if(kind==='temp'){
+  const sc=[0,1,2,3,4,5];
+  const ex=sc.map(s=>Math.exp(s/v));
+  const z=ex.reduce((a,b)=>a+b,0);
+  const w=ex.map(e=>e/z);
+  return {values:w,text:'温度 τ='+v.toFixed(2)+'：6 个位置的注意力权重，最大权重为 '+Math.max(...w).toFixed(3)+'（最后一个位置）。'+(v<0.7?'τ 很小 → 分布几乎全部集中在单一位置。':v>1.8?'τ 很大 → 分布趋于均匀，接近平均。':'中等 τ → 权重按分数差平滑分配，没有单一位置占绝对优势。')}
+ }
  if(kind==='dilate'){
   const d=Math.max(1,Math.round(v));
   const rf=[]; let r=1;
